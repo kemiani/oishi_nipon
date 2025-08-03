@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -6,9 +6,13 @@ export const metadata: Metadata = {
   description: "Los mejores sabores japoneses directo a tu mesa. Sushi fresco, ingredientes de calidad y entrega rápida.",
   keywords: "sushi, delivery, comida japonesa, rolls, sashimi, nigiri, pedidos online",
   authors: [{ name: "Sushi Express" }],
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#ef4444",
 };
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#ef4444',
+}
 
 export default function RootLayout({
   children,
