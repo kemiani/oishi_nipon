@@ -346,3 +346,219 @@ html, body {
   line-clamp:2;      /* <- estándar para evitar el warning */
 }
 
+/* ----------  ESTILOS PARA EL CARRITO  ---------- */
+.cart-page {
+  min-height: 100vh;
+  background: #000;
+}
+
+.cart-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.9);
+  border-bottom: 1px solid var(--border-primary);
+  backdrop-filter: blur(8px);
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cart-item {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.cart-item:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(255, 23, 68, 0.3);
+}
+
+.cart-item .image {
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #191919;
+}
+
+.cart-item .image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cart-item .details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cart-item .details h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.cart-item .details p {
+  font-size: 0.9rem;
+  color: #999;
+  line-height: 1.4;
+}
+
+.cart-item .variations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cart-item .variations span {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--accent-gold);
+  border-radius: 8px;
+}
+
+.cart-item .quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.cart-item .quantity-controls button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-item .quantity-controls button:hover:not(:disabled) {
+  background: rgba(255, 23, 68, 0.1);
+  border-color: var(--accent-red);
+}
+
+.cart-item .quantity-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cart-item .remove {
+  margin-top: 0.5rem;
+  color: #ff4444;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: color 0.2s;
+}
+
+.cart-item .remove:hover {
+  color: #ff6666;
+  text-decoration: underline;
+}
+
+.cart-item .pricing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.cart-item .pricing .subtotal {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.cart-item .pricing .unit {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.cart-summary {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  position: sticky;
+  top: 5rem;
+}
+
+.cart-summary h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.cart-summary .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-primary);
+  font-size: 0.95rem;
+  color: #ccc;
+}
+
+.cart-summary .total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  font-weight: 700;
+}
+
+.cart-summary .total .label {
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.cart-summary .total .amount {
+  font-size: 1.5rem;
+  color: var(--accent-gold);
+}
+
+.cart-summary .checkout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem;
+  background: var(--accent-red);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.cart-summary .checkout-btn:hover {
+  background: var(--accent-red-hover);
+  transform: translateY(-2px);
+}
+
+/* Estilos adicionales para checkout */
+.bg-accent-red-light {
+  background-color: rgba(255, 23, 68, 0.05);
+}

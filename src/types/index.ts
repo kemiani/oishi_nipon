@@ -11,17 +11,37 @@ export interface Category {
 
 export interface VariationOption {
   label: string;
-  price_change?: number;            // Δ de precio si corresponde
+  price_change?: number;
 }
 
 export interface Variation {
   id?: string;
   product_id?: string;
   name: string;
-  type: 'single' | 'multi';         // selección única o múltiple
+  type: 'single' | 'multi';
   price_change: number;
   is_required: boolean;
   options?: VariationOption[];
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  category: string;
+  image_url?: string | null;
+  is_available: boolean;
+  variations?: Variation[];
+}
+
+export interface CartItem {
+  id: string;
+  product: Product;
+  selected_variations: Variation[];
+  price: number;
+  quantity: number;
+  subtotal: number;
 }
 
 export interface RestaurantSettings {
@@ -37,32 +57,6 @@ export interface RestaurantSettings {
   social_media?: Record<string, string>;
 }
 
-export interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  category: string;                 // ← ID de la categoría (no categoryId)
-  image_url?: string | null;
-  is_available: boolean;
-  variations?: Variation[];
-}
-
-export interface CartItem {
-  id: string;
-  product: Product;
-  selected_variations: Variation[];
-  price: number;                    // precio base + variaciones
-  quantity: number;
-  subtotal: number;
-}
-
-export interface RestaurantSettings {
-  is_delivery_free: boolean;
-  delivery_cost: number;
-  /* otras flags que vengan de la BD */
-}
-
 export interface OrderForm {
   customer_name: string;
   customer_phone: string;
@@ -70,4 +64,33 @@ export interface OrderForm {
   delivery_address?: string;
   payment_method: 'cash' | 'transfer';
   notes?: string;
+}
+
+export interface Order {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  delivery_type: 'delivery' | 'pickup';
+  delivery_address?: string;
+  payment_method: 'cash' | 'transfer';
+  items: string;
+  subtotal: number;
+  delivery_cost: number;
+  total: number;
+  status: 'pending' | 'confirmed' | 'preparing' | 'delivered' | 'cancelled';
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface CreateProductForm {
+  name: string;
+  description?: string;
+  price: number;
+  category: string;
+  category_id?: string;
+  image_url?: string;
+  stock?: number;
+  is_available?: boolean;
+  variations?: Variation[];
 }

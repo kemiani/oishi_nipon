@@ -1,27 +1,10 @@
 // src/app/admin/page.tsx – Panel de administración de Oishi Nipon
-//
-// Este componente implementa un panel de administración básico para
-// gestionar productos, categorías y pedidos.  Se apoya en las
-// funciones de supabase definidas en `lib/supabase.ts` y utiliza
-// los mismos estilos “glass” y colores que el resto de la aplicación.
-//
-// El panel consta de cuatro pestañas principales:
-//   1. Productos – lista, creación, edición y eliminación de productos.
-//   2. Categorías – lista y creación de categorías para filtrar productos.
-//   3. Pedidos – vista de pedidos recientes con opción de marcar como
-//      entregado o pendiente.
-//   4. Reportes – resumen de ventas en un rango de fechas.
-//
-// Cada sección se aloja dentro de un contenedor “glass‑card” y las
-// interacciones son asincrónicas; se actualizan los listados al
-// completar una acción.  El objetivo es ofrecer una interfaz intuitiva
-// sin depender de librerías externas, aprovechando los componentes
-// existentes y la API de Supabase.
 
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabaseHelpers } from '../../lib/supabase';
+import { useRouter } from 'next/navigation';
+import { supabase, supabaseHelpers } from '../../lib/supabase';
 import { formatPrice } from '../../lib/utils';
 import type { Product, Category, Order } from '../../types';
 
@@ -29,7 +12,9 @@ import type { Product, Category, Order } from '../../types';
 type AdminTab = 'products' | 'categories' | 'orders' | 'reports';
 
 export default function AdminPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<AdminTab>('products');
+  const [user, setUser] = useState<any>(null);
 
   // Estados para los datos
   const [products, setProducts] = useState<Product[]>([]);
@@ -48,12 +33,27 @@ export default function AdminPage() {
   const [reportRange, setReportRange] = useState({ start: '', end: '' });
   const [reportStats, setReportStats] = useState<{ total: number; count: number } | null>(null);
 
+  // Verificar autenticación
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/admin/login');
+      } else {
+        setUser(user);
+      }
+    };
+    checkAuth();
+  }, [router]);
+
   // Cargar datos iniciales
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-    fetchOrders();
-  }, []);
+    if (user) {
+      fetchProducts();
+      fetchCategories();
+      fetchOrders();
+    }
+  }, [user]);
 
   /**
    * Obtiene productos disponibles a través de Supabase.
@@ -76,8 +76,7 @@ export default function AdminPage() {
   };
 
   /**
-   * Obtiene pedidos recientes a través de Supabase.  Se limita a los
-   * últimos 50 pedidos para no sobrecargar la interfaz.
+   * Obtiene pedidos recientes a través de Supabase.
    */
   const fetchOrders = async () => {
     const { data, error } = await supabaseHelpers.getOrders(50, 0);
@@ -98,7 +97,7 @@ export default function AdminPage() {
       name: newProduct.name.trim(),
       description: newProduct.description.trim(),
       price: newProduct.price,
-      category_id: newProduct.category_id,
+      category: newProduct.category_id, // Cambiar category_id a category
       image_url: newProduct.image_url.trim(),
       is_available: true,
     });
@@ -149,7 +148,7 @@ export default function AdminPage() {
 
   /**
    * Genera un reporte de ventas para el rango indicado y calcula total y
-   * cantidad de pedidos.  Utiliza la función `getOrderStats`.
+   * cantidad de pedidos.
    */
   const handleGenerateReport = async () => {
     const { start, end } = reportRange;
@@ -166,6 +165,14 @@ export default function AdminPage() {
     const count = data.length;
     const total = data.reduce((acc: number, order: any) => acc + (order.total || 0), 0);
     setReportStats({ total, count });
+  };
+
+  /**
+   * Cierra sesión del usuario
+   */
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/admin/login');
   };
 
   /**
@@ -359,40 +366,51 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-black py-8 px-4">
-      <h1 className="text-3xl font-bold text-white mb-8 text-center">Panel de administración</h1>
-      {/* Navegación de pestañas */}
-      <div className="flex justify-center gap-4 mb-8 flex-wrap">
-        <button
-          onClick={() => setActiveTab('products')}
-          className={`btn-secondary ${activeTab === 'products' ? 'bg-accent-red text-white' : ''}`}
-        >
-          Productos
-        </button>
-        <button
-          onClick={() => setActiveTab('categories')}
-          className={`btn-secondary ${activeTab === 'categories' ? 'bg-accent-red text-white' : ''}`}
-        >
-          Categorías
-        </button>
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`btn-secondary ${activeTab === 'orders' ? 'bg-accent-red text-white' : ''}`}
-        >
-          Pedidos
-        </button>
-        <button
-          onClick={() => setActiveTab('reports')}
-          className={`btn-secondary ${activeTab === 'reports' ? 'bg-accent-red text-white' : ''}`}
-        >
-          Reportes
-        </button>
-      </div>
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-white">Panel de administración</h1>
+          <button
+            onClick={handleLogout}
+            className="btn-secondary text-sm"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+        
+        {/* Navegación de pestañas */}
+        <div className="flex justify-center gap-4 mb-8 flex-wrap">
+          <button
+            onClick={() => setActiveTab('products')}
+            className={`btn-secondary ${activeTab === 'products' ? 'bg-accent-red text-white' : ''}`}
+          >
+            Productos
+          </button>
+          <button
+            onClick={() => setActiveTab('categories')}
+            className={`btn-secondary ${activeTab === 'categories' ? 'bg-accent-red text-white' : ''}`}
+          >
+            Categorías
+          </button>
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`btn-secondary ${activeTab === 'orders' ? 'bg-accent-red text-white' : ''}`}
+          >
+            Pedidos
+          </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`btn-secondary ${activeTab === 'reports' ? 'bg-accent-red text-white' : ''}`}
+          >
+            Reportes
+          </button>
+        </div>
 
-      {/* Contenido según la pestaña activa */}
-      {activeTab === 'products' && renderProductsTab()}
-      {activeTab === 'categories' && renderCategoriesTab()}
-      {activeTab === 'orders' && renderOrdersTab()}
-      {activeTab === 'reports' && renderReportsTab()}
+        {/* Contenido según la pestaña activa */}
+        {activeTab === 'products' && renderProductsTab()}
+        {activeTab === 'categories' && renderCategoriesTab()}
+        {activeTab === 'orders' && renderOrdersTab()}
+        {activeTab === 'reports' && renderReportsTab()}
+      </div>
     </div>
   );
 }

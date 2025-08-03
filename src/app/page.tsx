@@ -12,6 +12,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useCartStore } from '../store/cartStore';
 import { formatPrice } from '../lib/utils';
+import { Product } from '@/types';
 
 // Predefined categories.  Keeping the list short reduces
 // choice overload and helps users find what they need faster【63139696847701†L68-L71】.
@@ -98,18 +99,24 @@ export default function HomePage() {
    * Adds a product to the cart and shows a short toast.  The cart
    * store should handle merging quantities for existing products.
    */
+ /**
+   * Adds a product to the cart and shows a short toast.  The cart
+   * store should handle merging quantities for existing products.
+   */
   const handleAddToCart = (product: typeof products[0]) => {
-    /*
-     * Añade un producto al carrito.  El store espera tres parámetros:
-     * el producto, un array de variaciones (vacío si no hay) y la
-     * cantidad.  Anteriormente se pasaba un objeto con claves
-     * product, quantity y selected_variations, lo que impedía que
-     * Zustand registrase correctamente el item.  Con esta firma
-     * compatible el subtotal y el contador de productos se actualizan
-     * como corresponde【284950248555504†L31-L89】.
-     */
-    // @ts-ignore – la función se tipa en el store externo
-    addItem(product, [], 1);
+    // Convertir el producto del ejemplo al formato esperado por el store
+    const productForCart: Product = {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      image_url: product.image_url,
+      is_available: true,
+      variations: []
+    };
+    
+    addItem(productForCart, [], 1);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
   };
