@@ -1,10 +1,10 @@
 // src/app/page.tsx – Home page with product listing and filtering
 //
-// Este componente muestra la interfaz principal de compras.  Incluye
-// una barra de navegación sticky, un filtro de categorías y un grid
-// responsivo de productos:contentReference[oaicite:11]{index=11}.  Al agregar un producto al
-// carrito se muestra un toast y se actualiza la insignia del carrito.
-// Una barra fija de checkout resume la orden y enlaza al carrito.
+// This component renders the main shopping interface for Oishi Nipon.  A
+// sticky navigation bar, category filter and responsive product grid
+// provide convenient browsing【648140313359357†L73-L84】.  Adding an item to the
+// cart triggers a toast notification and updates the cart badge.  A
+// fixed checkout bar summarises the order and leads to the cart.
 
 'use client';
 
@@ -13,8 +13,8 @@ import Link from 'next/link';
 import { useCartStore } from '../store/cartStore';
 import { formatPrice } from '../lib/utils';
 
-// Categorías predefinidas.  Una lista corta reduce la
-// sobrecarga de elección y ayuda al usuario a encontrar rápido lo que busca:contentReference[oaicite:12]{index=12}.
+// Predefined categories.  Keeping the list short reduces
+// choice overload and helps users find what they need faster【63139696847701†L68-L71】.
 const categories = [
   { id: 'all', label: 'Todo', icon: '🍣' },
   { id: 'sushi', label: 'Sushi', icon: '🍣' },
@@ -22,8 +22,9 @@ const categories = [
   { id: 'bebidas', label: 'Bebidas', icon: '🍶' },
 ];
 
-// Catálogo de productos de ejemplo.  En una aplicación real vendría del backend.
-// Fotos de calidad y textos concisos comunican el valor rápidamente:contentReference[oaicite:13]{index=13}.
+// Example product catalogue.  In a real application this data would
+// come from your backend.  High quality photos and concise copy
+// convey the value of each dish quickly【648140313359357†L127-L140】.
 const products = [
   {
     id: 'p1',
@@ -86,27 +87,36 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showToast, setShowToast] = useState(false);
 
-  // Filtra los productos por categoría usando memoización.
+  // Filter products by the currently selected category.  The
+  // computation is memoised to avoid recalculating on every render.
   const filteredProducts = useMemo(() => {
     if (selectedCategory === 'all') return products;
     return products.filter((p) => p.category === selectedCategory);
   }, [selectedCategory]);
 
   /**
-   * Añade un producto al carrito y muestra un toast temporal.  El store
-   * debería encargarse de incrementar la cantidad si el producto ya existe.
+   * Adds a product to the cart and shows a short toast.  The cart
+   * store should handle merging quantities for existing products.
    */
   const handleAddToCart = (product: typeof products[0]) => {
-    // Se ignora el tipado del store en este snippet; adapta según tu implementación.
-    // @ts-ignore
-    addItem({ product, quantity: 1, selected_variations: [] });
+    /*
+     * Añade un producto al carrito.  El store espera tres parámetros:
+     * el producto, un array de variaciones (vacío si no hay) y la
+     * cantidad.  Anteriormente se pasaba un objeto con claves
+     * product, quantity y selected_variations, lo que impedía que
+     * Zustand registrase correctamente el item.  Con esta firma
+     * compatible el subtotal y el contador de productos se actualizan
+     * como corresponde【284950248555504†L31-L89】.
+     */
+    // @ts-ignore – la función se tipa en el store externo
+    addItem(product, [], 1);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
   };
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      {/* Navegación */}
+      {/* Navigation */}
       <header className="oishi-navbar">
         <div className="oishi-brand">
           <span className="text-gradient-red">Oishi</span>
@@ -120,15 +130,13 @@ export default function HomePage() {
         </Link>
       </header>
 
-      {/* Filtro de categorías */}
+      {/* Category filter */}
       <div className="category-filter-row">
         <div className="category-filter">
           {categories.map((cat) => (
             <button
               key={cat.id}
-              className={`category-btn ${
-                selectedCategory === cat.id ? 'active' : ''
-              }`}
+              className={`category-btn ${selectedCategory === cat.id ? 'active' : ''}`}
               onClick={() => setSelectedCategory(cat.id)}
             >
               <span className="icon">{cat.icon}</span>
@@ -138,7 +146,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Grid de productos */}
+      {/* Product grid */}
       <div className="products-grid">
         {filteredProducts.map((product) => (
           <div key={product.id} className="product-card">
@@ -176,17 +184,20 @@ export default function HomePage() {
               {getTotalItems()} producto{getTotalItems() > 1 ? 's' : ''} |{' '}
               {formatPrice(getSubtotal())}
             </span>
-            <Link href="/cart" className="checkout-btn">
-              Ver carrito
-            </Link>
+            <div className="checkout-actions">
+              <Link href="/cart" className="checkout-btn">
+                Ver carrito
+              </Link>
+              <Link href="/checkout" className="checkout-btn">
+                Finalizar
+              </Link>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Toast de producto agregado */}
-      {showToast && (
-        <div className="toast-added">Producto agregado al carrito</div>
-      )}
+      {/* Toast notification */}
+      {showToast && <div className="toast-added">Producto agregado al carrito</div>}
     </div>
   );
 }
