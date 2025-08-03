@@ -1,129 +1,88 @@
-// src/store/cartStore.ts
+/* ------------------------------------------
+ * Zustand store para el carrito
+ * ------------------------------------------ */
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { CartItem, Product, SelectedVariation } from '@/types';
+import type { Product, Variation } from '../types';
+
+/* Helpers */
+const calcPrice = (p: Product, vars: Variation[]) =>
+  vars.reduce((acc, v) => acc + (v.price_change ?? 0), p.price);
+
+export interface CartItem {
+  id: string;
+  product: Product;
+  selected_variations: Variation[];
+  price: number;
+  quantity: number;
+  subtotal: number;
+}
 
 interface CartState {
   items: CartItem[];
-  isOpen: boolean;
-  
-  // Actions
-  addItem: (product: Product, selectedVariations: SelectedVariation[], quantity?: number) => void;
-  removeItem: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
+
+  addItem: (p: Product, v: Variation[], q?: number) => void;
+  removeItem: (id: string) => void;
+  updateQuantity: (id: string, q: number) => void;
   clearCart: () => void;
-  toggleCart: () => void;
-  
-  // Computed values
+
   getTotalItems: () => number;
   getSubtotal: () => number;
-  getTotal: (deliveryCost?: number) => number;
 }
 
-const calculateItemSubtotal = (product: Product, selectedVariations: SelectedVariation[], quantity: number): number => {
-  const basePrice = product.price;
-  const variationsTotal = selectedVariations.reduce((sum, variation) => sum + variation.price_change, 0);
-  return (basePrice + variationsTotal) * quantity;
-};
+export const useCartStore = create<CartState>((set, get) => ({
+  items: [],
 
-const generateCartItemId = (product: Product, selectedVariations: SelectedVariation[]): string => {
-  const variationsKey = selectedVariations
-    .map(v => `${v.variation_id}-${v.selected_option || ''}`)
-    .sort()
-    .join('|');
-  return `${product.id}-${variationsKey}`;
-};
+  /* -------- acciones -------- */
+  addItem: (product, variations, quantity = 1) =>
+    set((state) => {
+      const price = calcPrice(product, variations);
 
-export const useCartStore = create<CartState>()(
-  persist(
-    (set, get) => ({
-      items: [],
-      isOpen: false,
+      // mismo producto + mismas variaciones → agrupar
+      const found = state.items.find(
+        (it) =>
+          it.product.id === product.id &&
+          JSON.stringify(it.selected_variations) === JSON.stringify(variations)
+      );
 
-      addItem: (product: Product, selectedVariations: SelectedVariation[], quantity = 1) => {
-        const itemId = generateCartItemId(product, selectedVariations);
-        const subtotal = calculateItemSubtotal(product, selectedVariations, quantity);
-        
-        set((state) => {
-          const existingItemIndex = state.items.findIndex(item => item.id === itemId);
-          
-          if (existingItemIndex >= 0) {
-            // Si el item ya existe, actualizar cantidad
-            const updatedItems = [...state.items];
-            const existingItem = updatedItems[existingItemIndex];
-            const newQuantity = existingItem.quantity + quantity;
-            
-            updatedItems[existingItemIndex] = {
-              ...existingItem,
-              quantity: newQuantity,
-              subtotal: calculateItemSubtotal(product, selectedVariations, newQuantity)
-            };
-            
-            return { items: updatedItems };
-          } else {
-            // Si es un nuevo item, agregarlo
-            const newItem: CartItem = {
-              id: itemId,
-              product,
-              quantity,
-              selected_variations: selectedVariations,
-              subtotal
-            };
-            
-            return { items: [...state.items, newItem] };
-          }
-        });
-      },
-
-      removeItem: (itemId: string) => {
-        set((state) => ({
-          items: state.items.filter(item => item.id !== itemId)
-        }));
-      },
-
-      updateQuantity: (itemId: string, quantity: number) => {
-        if (quantity <= 0) {
-          get().removeItem(itemId);
-          return;
-        }
-
-        set((state) => ({
-          items: state.items.map(item => {
-            if (item.id === itemId) {
-              return {
-                ...item,
-                quantity,
-                subtotal: calculateItemSubtotal(item.product, item.selected_variations, quantity)
-              };
-            }
-            return item;
-          })
-        }));
-      },
-
-      clearCart: () => {
-        set({ items: [] });
-      },
-
-      toggleCart: () => {
-        set((state) => ({ isOpen: !state.isOpen }));
-      },
-
-      getTotalItems: () => {
-        return get().items.reduce((total, item) => total + item.quantity, 0);
-      },
-
-      getSubtotal: () => {
-        return get().items.reduce((total, item) => total + item.subtotal, 0);
-      },
-
-      getTotal: (deliveryCost = 0) => {
-        return get().getSubtotal() + deliveryCost;
+      if (found) {
+        return {
+          items: state.items.map((it) =>
+            it === found
+              ? {
+                  ...it,
+                  quantity: it.quantity + quantity,
+                  subtotal: (it.quantity + quantity) * it.price,
+                }
+              : it
+          ),
+        };
       }
+
+      const newItem: CartItem = {
+        id: crypto.randomUUID(),
+        product,
+        selected_variations: variations,
+        price,
+        quantity,
+        subtotal: price * quantity,
+      };
+
+      return { items: [...state.items, newItem] };
     }),
-    {
-      name: 'sushi-cart', // nombre para localStorage
-      partialize: (state) => ({ items: state.items }), // solo persistir items
-    }
-  )
-);
+
+  removeItem: (id) =>
+    set((s) => ({ items: s.items.filter((it) => it.id !== id) })),
+
+  updateQuantity: (id, quantity) =>
+    set((s) => ({
+      items: s.items.map((it) =>
+        it.id === id ? { ...it, quantity, subtotal: it.price * quantity } : it
+      ),
+    })),
+
+  clearCart: () => set({ items: [] }),
+
+  /* -------- selectores -------- */
+  getTotalItems: () => get().items.reduce((acc, it) => acc + it.quantity, 0),
+  getSubtotal: () => get().items.reduce((acc, it) => acc + it.subtotal, 0),
+}));

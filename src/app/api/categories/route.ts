@@ -1,6 +1,6 @@
 // src/app/api/categories/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseHelpers } from '@/lib/supabase';
+import { supabaseHelpers } from '../../../lib/supabase';
 
 export async function GET() {
   try {

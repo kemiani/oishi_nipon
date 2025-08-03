@@ -1,7 +1,9 @@
+
+// ========================================
 // src/app/api/products/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseHelpers } from '@/lib/supabase';
-import type { CreateProductForm } from '@/types';
+import { supabase, supabaseHelpers } from '../../../lib/supabase';
+import type { CreateProductForm } from '../../../types';
 
 export async function GET(request: NextRequest) {
   try {

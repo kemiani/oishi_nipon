@@ -1,8 +1,10 @@
+
+// ========================================
 // src/app/api/settings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseHelpers } from '@/lib/supabase';
-import { normalizePhoneForWhatsApp } from '@/lib/utils';
-import type { RestaurantSettings } from '@/types';
+import { supabaseHelpers } from '../../../lib/supabase';
+import { normalizePhoneForWhatsApp } from '../../../lib/utils';
+import type { RestaurantSettings } from '../../../types';
 
 export async function GET() {
   try {

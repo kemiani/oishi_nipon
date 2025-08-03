@@ -1,8 +1,9 @@
+// ========================================
 // src/app/api/orders/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseHelpers } from '@/lib/supabase';
-import { generateWhatsAppMessage, generateWhatsAppUrl, normalizePhoneForWhatsApp } from '@/lib/utils';
-import type { OrderForm, CartItem } from '@/types';
+import { supabaseHelpers } from '../../../lib/supabase';
+import { generateWhatsAppMessage, generateWhatsAppUrl, normalizePhoneForWhatsApp } from '../../../lib/utils';
+import type { OrderForm, CartItem } from '../../../types';
 
 export async function GET(request: NextRequest) {
   try {
