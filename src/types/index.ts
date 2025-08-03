@@ -24,6 +24,19 @@ export interface Variation {
   options?: VariationOption[];
 }
 
+export interface RestaurantSettings {
+  id?: string;
+  name: string;
+  phone: string;
+  whatsapp_number: string;
+  address: string;
+  is_delivery_free: boolean;
+  delivery_cost: number;
+  opening_hours: Record<string, any>;
+  is_open: boolean;
+  social_media?: Record<string, string>;
+}
+
 export interface Product {
   id: string;
   name: string;
