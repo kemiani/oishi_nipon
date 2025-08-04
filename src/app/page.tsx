@@ -10,6 +10,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useCartStore } from '../store/cartStore';
 import { formatPrice } from '../lib/utils';
 import { Product } from '@/types';
@@ -99,10 +100,6 @@ export default function HomePage() {
    * Adds a product to the cart and shows a short toast.  The cart
    * store should handle merging quantities for existing products.
    */
- /**
-   * Adds a product to the cart and shows a short toast.  The cart
-   * store should handle merging quantities for existing products.
-   */
   const handleAddToCart = (product: typeof products[0]) => {
     // Convertir el producto del ejemplo al formato esperado por el store
     const productForCart: Product = {
@@ -159,7 +156,13 @@ export default function HomePage() {
           <div key={product.id} className="product-card">
             <div className="product-image">
               {product.image_url ? (
-                <img src={product.image_url} alt={product.name} />
+                <Image 
+                  src={product.image_url} 
+                  alt={product.name}
+                  width={600}
+                  height={400}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <div className="flex items-center justify-center w-full h-full text-4xl">
                   🍣

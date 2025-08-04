@@ -1,4 +1,3 @@
-
 // ========================================
 // src/app/api/products/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     // Si hay variaciones, crearlas
     if (body.variations && body.variations.length > 0) {
-      const { data: variations, error: variationsError } = await supabase
+      const { error: variationsError } = await supabase
         .from('product_variations')
         .insert(
           body.variations.map(variation => ({

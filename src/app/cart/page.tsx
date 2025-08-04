@@ -8,6 +8,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useCartStore } from '../../store/cartStore';
 import { formatPrice } from '../../lib/utils';
 
@@ -109,7 +110,13 @@ export default function CartPage() {
               {/* Imagen del producto */}
               <div className="image">
                 {item.product.image_url ? (
-                  <img src={item.product.image_url} alt={item.product.name} />
+                  <Image 
+                    src={item.product.image_url} 
+                    alt={item.product.name}
+                    width={100}
+                    height={100}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="flex items-center justify-center w-full h-full">🍣</div>
                 )}

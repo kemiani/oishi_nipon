@@ -5,7 +5,6 @@ import type {
   Category, 
   Order, 
   RestaurantSettings,
-  CreateProductForm 
 } from '../types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -265,7 +264,7 @@ export const supabaseHelpers = {
     return { data: category, error: null };
   },
 
-  // Pedidos
+  // Pedidos - CORREGIDO para manejar undefined/null correctamente
   async createOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>) {
     const { data, error } = await supabase
       .from('orders')
@@ -273,14 +272,14 @@ export const supabaseHelpers = {
         customer_name: orderData.customer_name,
         customer_phone: orderData.customer_phone,
         delivery_type: orderData.delivery_type,
-        delivery_address: orderData.delivery_address || null,
+        delivery_address: orderData.delivery_address || null, // Convertir undefined a null para la DB
         payment_method: orderData.payment_method,
         items: orderData.items,
         subtotal: orderData.subtotal,
         delivery_cost: orderData.delivery_cost,
         total: orderData.total,
         status: orderData.status,
-        notes: orderData.notes || null
+        notes: orderData.notes || null // Convertir undefined a null para la DB
       }])
       .select()
       .single();
@@ -295,14 +294,14 @@ export const supabaseHelpers = {
       customer_name: dbOrder.customer_name,
       customer_phone: dbOrder.customer_phone,
       delivery_type: dbOrder.delivery_type,
-      delivery_address: dbOrder.delivery_address || undefined,
+      delivery_address: dbOrder.delivery_address || undefined, // Convertir null a undefined para el tipo
       payment_method: dbOrder.payment_method,
       items: dbOrder.items,
       subtotal: dbOrder.subtotal,
       delivery_cost: dbOrder.delivery_cost,
       total: dbOrder.total,
       status: dbOrder.status,
-      notes: dbOrder.notes || undefined,
+      notes: dbOrder.notes || undefined, // Convertir null a undefined para el tipo
       created_at: dbOrder.created_at,
       updated_at: dbOrder.updated_at || undefined
     };

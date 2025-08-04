@@ -1,18 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // Habilitar features experimentales si es necesario
-  },
   images: {
-    domains: [
-      // Agregar dominios permitidos para imágenes
-      'localhost',
-      // Agregar aquí los dominios donde estarán las imágenes de productos
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
     ],
-  },
-  // Configuración para variables de entorno
-  env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
 }
 

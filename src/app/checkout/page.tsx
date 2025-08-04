@@ -155,7 +155,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, getSubtotal, clearCart } = useCartStore();
   
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep] = useState(1);
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
