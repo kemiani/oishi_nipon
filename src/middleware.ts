@@ -1,67 +1,46 @@
-// src/middleware.ts - Middleware para proteger rutas admin
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
-export async function middleware(req: NextRequest) {
-  const response = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
-  });
-
-  const supabase = createServerClient(
+async function supabaseFromMiddleware(req: NextRequest, res: NextResponse) {
+  // req.cookies en middleware ya está listo (no es Promise)
+  const store = req.cookies;                   // RequestCookies
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-        },
-        remove(name: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
-        },
+        getAll: () => store.getAll().map(c => ({ name: c.name, value: c.value })),
+        // Escribir cookies: usar res.cookies.set
+        setAll: (all) =>
+          all.forEach(({ name, value, options }) =>
+            res.cookies.set({ name, value, ...options }),
+          ),
       },
-    }
+    },
   );
+}
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const supabase = await supabaseFromMiddleware(req, res);
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Si intenta acceder a /admin sin estar autenticado
-  if (req.nextUrl.pathname.startsWith('/admin') && 
+  if (req.nextUrl.pathname.startsWith('/admin') &&
       !req.nextUrl.pathname.startsWith('/admin/login') &&
       !user) {
     return NextResponse.redirect(new URL('/admin/login', req.url));
   }
 
-  // Si está autenticado e intenta acceder a login, redirigir a admin
   if (req.nextUrl.pathname === '/admin/login' && user) {
-    // Verificar rol de admin
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
+      .from('profiles').select('role').eq('id', user.id).single();
     if (profile?.role === 'admin') {
       return NextResponse.redirect(new URL('/admin', req.url));
     }
   }
-
-  return response;
+  return res;
 }
 
-export const config = {
-  matcher: ['/admin/:path*'],
-};
+export const config = { matcher: ['/admin/:path*'] };

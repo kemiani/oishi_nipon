@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, supabaseHelpers } from '../../lib/supabase';
 import { formatPrice } from '../../lib/utils';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import type { Product, Category, Order } from '../../types';
 
 // Tipo de pestañas para mayor claridad
@@ -30,7 +30,7 @@ interface ReportRange {
 }
 
 export default function AdminPage() {
-  const { user, loading, signOut } = useAuth(true); // true para requerir admin
+  const { user, loading, signOut } = useAuth(true);
   const [activeTab, setActiveTab] = useState<AdminTab>('products');
 
   // Estados para los datos

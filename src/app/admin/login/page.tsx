@@ -1,4 +1,3 @@
-// src/app/admin/login/page.tsx - Página de login para administradores
 'use client';
 
 import { useState } from 'react';
@@ -12,118 +11,110 @@ interface FormData {
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [formData, setFormData] = useState<FormData>({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState<FormData>({ email: '', password: '' });
+  const [loading, setLoading]   = useState(false);
+  const [error,   setError]     = useState('');
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  /* ───── Helpers ───── */
+  const onChange =
+    (field: keyof FormData) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      setFormData((p) => ({ ...p, [field]: e.target.value }));
+
+  /* ───── Submit ───── */
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
+      // 1. Sign-in con Supabase JS (almacena en localStorage)
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
-        password: formData.password
+        password: formData.password,
       });
-
       if (error) throw error;
+      if (!data.user) throw new Error('No se pudo obtener el usuario');
 
-      if (!data.user) {
-        throw new Error('No se pudo obtener la información del usuario');
-      }
-
-      // Verificar si el usuario tiene permisos de admin
-      const { data: profile, error: profileError } = await supabase
+      // 2. Verificar rol admin
+      const { data: profile, error: pErr } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
         .single();
-
-      if (profileError) {
-        console.error('Error al obtener perfil:', profileError);
-        throw new Error('Error al verificar permisos');
-      }
-
+      if (pErr) throw pErr;
       if (profile?.role !== 'admin') {
         await supabase.auth.signOut();
         throw new Error('No tienes permisos de administrador');
       }
 
-      // Redirigir al panel de admin
+      // 3. Puente → graba cookie HTTP-only para SSR
+      await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token:  data.session?.access_token,
+          refresh_token: data.session?.refresh_token,
+        }),
+      });
+
+      // 4. Navega al dashboard
       router.push('/admin');
       router.refresh();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al iniciar sesión';
-      setError(errorMessage);
+    } catch (err: any) {
+      setError(err?.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
-  };
-
+  /* ───── UI ───── */
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="glass-card p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            <span className="text-gradient-red">Oishi</span> Admin
-          </h1>
-          <p className="text-gray-400">Ingresa tus credenciales para continuar</p>
-        </div>
+        <h1 className="text-3xl font-bold text-white text-center mb-6">
+          <span className="text-gradient-red">Oishi</span> Admin
+        </h1>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-              Email
-            </label>
+            <label className="label-premium">Email</label>
             <input
-              id="email"
               type="email"
               required
-              value={formData.email}
-              onChange={handleInputChange('email')}
               className="input-premium w-full"
-              placeholder="admin@oishinpon.com"
+              placeholder="admin@oishinipon.com"
+              value={formData.email}
+              onChange={onChange('email')}
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-              Contraseña
-            </label>
+            <label className="label-premium">Contraseña</label>
             <input
-              id="password"
               type="password"
               required
-              value={formData.password}
-              onChange={handleInputChange('password')}
               className="input-premium w-full"
               placeholder="••••••••"
+              value={formData.password}
+              onChange={onChange('password')}
             />
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
+            <p className="text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm">
+              {error}
+            </p>
           )}
 
           <button
-            type="submit"
+            className="btn-primary w-full justify-center disabled:opacity-50"
             disabled={loading}
-            className="btn-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            type="submit"
           >
             {loading ? (
               <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Iniciando sesión...</span>
+                <div className="spinner-mini mr-2" /> Iniciando…
               </>
             ) : (
               'Iniciar sesión'
