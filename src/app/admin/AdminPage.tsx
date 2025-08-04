@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Lógica principal del panel de admin.
- * Define pestañas y renderiza la vista correspondiente.
+ * Define pestañas y renderiza la vista correspondiente.........
  */
 export default function AdminPage() {
   const { user, loading, signOut } = useAuth(true);

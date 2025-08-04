@@ -332,7 +332,7 @@ export const supabaseHelpers = {
     return { data: data as RestaurantSettings, error: null };
   },
 
-  // ────────── REPORTES ──────────
+  // ────────── REPORTES ─────────────
 
   async getOrderStats(startDate?: string, endDate?: string) {
     let query = supabase.from('orders').select('*');
