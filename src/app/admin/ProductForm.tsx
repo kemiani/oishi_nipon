@@ -84,12 +84,12 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
   }
 
   // Crear o editar producto
-  const handleSubmit = async () => {
-    preventDefault();
-    if (!form.name || !form.category || form.price <= 0) {
-      alert('Completa nombre, categoría y precio');
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!form.name || !form.category || form.price <= 0) {
+    alert('Completa nombre, categoría y precio');
+    return;
+  }
 
     let imageUrl = form.image_url.trim();
     if (!imageUrl && imageFile) {
