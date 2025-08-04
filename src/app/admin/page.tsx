@@ -3,18 +3,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase, supabaseHelpers } from '../../lib/supabase';
 import { formatPrice } from '../../lib/utils';
+import { useAuth } from '../../hooks/useAuth';
 import type { Product, Category, Order } from '../../types';
 
 // Tipo de pestañas para mayor claridad
 type AdminTab = 'products' | 'categories' | 'orders' | 'reports';
 
 export default function AdminPage() {
-  const router = useRouter();
+  const { user, loading, signOut } = useAuth(true); // true para requerir admin
   const [activeTab, setActiveTab] = useState<AdminTab>('products');
-  const [user, setUser] = useState<any>(null);
 
   // Estados para los datos
   const [products, setProducts] = useState<Product[]>([]);
@@ -29,31 +28,21 @@ export default function AdminPage() {
     category_id: '',
     image_url: '',
   });
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [reportRange, setReportRange] = useState({ start: '', end: '' });
   const [reportStats, setReportStats] = useState<{ total: number; count: number } | null>(null);
 
-  // Verificar autenticación
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/admin/login');
-      } else {
-        setUser(user);
-      }
-    };
-    checkAuth();
-  }, [router]);
-
   // Cargar datos iniciales
   useEffect(() => {
-    if (user) {
+    if (user && !loading) {
       fetchProducts();
       fetchCategories();
       fetchOrders();
     }
-  }, [user]);
+  }, [user, loading]);
 
   /**
    * Obtiene productos disponibles a través de Supabase.
@@ -86,6 +75,38 @@ export default function AdminPage() {
   };
 
   /**
+   * Sube una imagen a Supabase Storage
+   */
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      setUploadingImage(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error al subir imagen:', error);
+      alert('Error al subir la imagen');
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  /**
    * Crea un nuevo producto en la base de datos y refresca la lista.
    */
   const handleCreateProduct = async () => {
@@ -93,12 +114,23 @@ export default function AdminPage() {
       alert('Completa nombre, categoría y precio');
       return;
     }
+
+    let imageUrl = newProduct.image_url;
+
+    // Si hay un archivo de imagen, subirlo primero
+    if (imageFile) {
+      const uploadedUrl = await uploadImage(imageFile);
+      if (uploadedUrl) {
+        imageUrl = uploadedUrl;
+      }
+    }
+
     const { error } = await supabaseHelpers.createProduct({
       name: newProduct.name.trim(),
       description: newProduct.description.trim(),
       price: newProduct.price,
-      category: newProduct.category_id, // Cambiar category_id a category
-      image_url: newProduct.image_url.trim(),
+      category: newProduct.category_id,
+      image_url: imageUrl.trim(),
       is_available: true,
     });
     if (error) {
@@ -107,6 +139,7 @@ export default function AdminPage() {
     }
     // Limpiar formulario y recargar
     setNewProduct({ name: '', description: '', price: 0, category_id: '', image_url: '' });
+    setImageFile(null);
     fetchProducts();
   };
 
@@ -117,6 +150,62 @@ export default function AdminPage() {
     if (!confirm('¿Eliminar este producto?')) return;
     const { error } = await supabaseHelpers.deleteProduct(id);
     if (!error) fetchProducts();
+  };
+
+  /**
+   * Prepara un producto para edición
+   */
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setNewProduct({
+      name: product.name,
+      description: product.description || '',
+      price: product.price,
+      category_id: product.category,
+      image_url: product.image_url || '',
+    });
+    setImageFile(null);
+  };
+
+  /**
+   * Actualiza un producto existente
+   */
+  const handleUpdateProduct = async () => {
+    if (!editingProduct) return;
+    
+    if (!newProduct.name || !newProduct.category_id || newProduct.price <= 0) {
+      alert('Completa nombre, categoría y precio');
+      return;
+    }
+
+    let imageUrl = newProduct.image_url;
+
+    // Si hay un archivo de imagen nuevo, subirlo primero
+    if (imageFile) {
+      const uploadedUrl = await uploadImage(imageFile);
+      if (uploadedUrl) {
+        imageUrl = uploadedUrl;
+      }
+    }
+    
+    const { error } = await supabaseHelpers.updateProduct(editingProduct.id, {
+      name: newProduct.name.trim(),
+      description: newProduct.description.trim(),
+      price: newProduct.price,
+      category: newProduct.category_id,
+      image_url: imageUrl.trim(),
+    });
+    
+    if (error) {
+      alert('Error al actualizar el producto');
+      return;
+    }
+    
+    // Limpiar formulario y recargar
+    setNewProduct({ name: '', description: '', price: 0, category_id: '', image_url: '' });
+    setEditingProduct(null);
+    setImageFile(null);
+    fetchProducts();
   };
 
   /**
@@ -167,13 +256,14 @@ export default function AdminPage() {
     setReportStats({ total, count });
   };
 
-  /**
-   * Cierra sesión del usuario
-   */
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/admin/login');
-  };
+  // Mostrar loading mientras se verifica autenticación
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  }
 
   /**
    * Renderiza la lista de productos y el formulario de creación.
@@ -194,7 +284,10 @@ export default function AdminPage() {
                   <p className="text-accent-gold text-sm">{formatPrice(p.price)}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button onClick={() => handleDeleteProduct(p.id)} className="btn-secondary btn-sm">
+                  <button onClick={() => handleEditProduct(p)} className="btn-secondary btn-sm">
+                    Editar
+                  </button>
+                  <button onClick={() => handleDeleteProduct(p.id)} className="btn-secondary btn-sm text-red-400 border-red-400 hover:bg-red-400/10">
                     Eliminar
                   </button>
                 </div>
@@ -204,7 +297,9 @@ export default function AdminPage() {
         )}
       </div>
       <div className="glass-card p-6">
-        <h3 className="text-lg font-bold mb-4">Agregar producto</h3>
+        <h3 className="text-lg font-bold mb-4">
+          {editingProduct ? 'Editar producto' : 'Agregar producto'}
+        </h3>
         <div className="space-y-4">
           <input
             className="input-premium w-full"
@@ -236,16 +331,54 @@ export default function AdminPage() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
-          <input
-            className="input-premium w-full"
-            type="text"
-            placeholder="URL de la imagen"
-            value={newProduct.image_url}
-            onChange={(e) => setNewProduct({ ...newProduct, image_url: e.target.value })}
-          />
-          <button onClick={handleCreateProduct} className="btn-primary">
-            Crear producto
-          </button>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-300">Imagen del producto</label>
+            <input
+              className="input-premium w-full"
+              type="text"
+              placeholder="URL de la imagen"
+              value={newProduct.image_url}
+              onChange={(e) => setNewProduct({ ...newProduct, image_url: e.target.value })}
+            />
+            <div className="text-center text-gray-400 text-sm">- o -</div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              className="input-premium w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent-red file:text-white hover:file:bg-accent-red-hover"
+            />
+            {imageFile && (
+              <p className="text-sm text-gray-400">Archivo seleccionado: {imageFile.name}</p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={editingProduct ? handleUpdateProduct : handleCreateProduct} 
+              className="btn-primary flex-1"
+              disabled={uploadingImage}
+            >
+              {uploadingImage ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Subiendo imagen...
+                </>
+              ) : (
+                editingProduct ? 'Actualizar producto' : 'Crear producto'
+              )}
+            </button>
+            {editingProduct && (
+              <button 
+                onClick={() => {
+                  setEditingProduct(null);
+                  setNewProduct({ name: '', description: '', price: 0, category_id: '', image_url: '' });
+                  setImageFile(null);
+                }}
+                className="btn-secondary"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -370,7 +503,7 @@ export default function AdminPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-white">Panel de administración</h1>
           <button
-            onClick={handleLogout}
+            onClick={signOut}
             className="btn-secondary text-sm"
           >
             Cerrar sesión
