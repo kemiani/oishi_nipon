@@ -11,6 +11,10 @@ interface UseAuthReturn {
   signOut: () => Promise<void>;
 }
 
+interface UserProfile {
+  role: string;
+}
+
 export function useAuth(requireAdmin: boolean = false): UseAuthReturn {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -34,16 +38,24 @@ export function useAuth(requireAdmin: boolean = false): UseAuthReturn {
 
         // Verificar rol de admin si es necesario
         if (requireAdmin) {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
             .single();
 
-          if (profile?.role === 'admin') {
+          if (profileError) {
+            console.error('Error al obtener perfil:', profileError);
+            router.push('/admin/login');
+            return;
+          }
+
+          const userProfile = profile as UserProfile;
+          if (userProfile?.role === 'admin') {
             setIsAdmin(true);
           } else {
             router.push('/admin/login');
+            return;
           }
         }
       } catch (error) {
@@ -62,9 +74,6 @@ export function useAuth(requireAdmin: boolean = false): UseAuthReturn {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
-        if (requireAdmin) {
-          router.refresh();
-        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsAdmin(false);
@@ -80,8 +89,14 @@ export function useAuth(requireAdmin: boolean = false): UseAuthReturn {
   }, [router, requireAdmin]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/admin/login');
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setIsAdmin(false);
+      router.push('/admin/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return { user, loading, isAdmin, signOut };

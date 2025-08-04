@@ -11,6 +11,24 @@ import type { Product, Category, Order } from '../../types';
 // Tipo de pestañas para mayor claridad
 type AdminTab = 'products' | 'categories' | 'orders' | 'reports';
 
+interface NewProductForm {
+  name: string;
+  description: string;
+  price: number;
+  category_id: string;
+  image_url: string;
+}
+
+interface ReportStats {
+  total: number;
+  count: number;
+}
+
+interface ReportRange {
+  start: string;
+  end: string;
+}
+
 export default function AdminPage() {
   const { user, loading, signOut } = useAuth(true); // true para requerir admin
   const [activeTab, setActiveTab] = useState<AdminTab>('products');
@@ -21,7 +39,7 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
 
   // Estados para formularios
-  const [newProduct, setNewProduct] = useState({
+  const [newProduct, setNewProduct] = useState<NewProductForm>({
     name: '',
     description: '',
     price: 0,
@@ -32,8 +50,8 @@ export default function AdminPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [reportRange, setReportRange] = useState({ start: '', end: '' });
-  const [reportStats, setReportStats] = useState<{ total: number; count: number } | null>(null);
+  const [reportRange, setReportRange] = useState<ReportRange>({ start: '', end: '' });
+  const [reportStats, setReportStats] = useState<ReportStats | null>(null);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -252,8 +270,20 @@ export default function AdminPage() {
     }
     // Calcular totales
     const count = data.length;
-    const total = data.reduce((acc: number, order: any) => acc + (order.total || 0), 0);
+    const total = data.reduce((acc: number, order: Order) => acc + (order.total || 0), 0);
     setReportStats({ total, count });
+  };
+
+  const handleProductFormChange = (field: keyof NewProductForm, value: string | number) => {
+    setNewProduct(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageFile(e.target.files?.[0] || null);
+  };
+
+  const handleReportRangeChange = (field: keyof ReportRange, value: string) => {
+    setReportRange(prev => ({ ...prev, [field]: value }));
   };
 
   // Mostrar loading mientras se verifica autenticación
@@ -306,25 +336,25 @@ export default function AdminPage() {
             type="text"
             placeholder="Nombre"
             value={newProduct.name}
-            onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+            onChange={(e) => handleProductFormChange('name', e.target.value)}
           />
           <textarea
             className="input-premium w-full"
             placeholder="Descripción"
             value={newProduct.description}
-            onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+            onChange={(e) => handleProductFormChange('description', e.target.value)}
           />
           <input
             className="input-premium w-full"
             type="number"
             placeholder="Precio"
             value={newProduct.price}
-            onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
+            onChange={(e) => handleProductFormChange('price', Number(e.target.value))}
           />
           <select
             className="input-premium w-full"
             value={newProduct.category_id}
-            onChange={(e) => setNewProduct({ ...newProduct, category_id: e.target.value })}
+            onChange={(e) => handleProductFormChange('category_id', e.target.value)}
           >
             <option value="">Selecciona categoría</option>
             {categories.map((c) => (
@@ -338,13 +368,13 @@ export default function AdminPage() {
               type="text"
               placeholder="URL de la imagen"
               value={newProduct.image_url}
-              onChange={(e) => setNewProduct({ ...newProduct, image_url: e.target.value })}
+              onChange={(e) => handleProductFormChange('image_url', e.target.value)}
             />
             <div className="text-center text-gray-400 text-sm">- o -</div>
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              onChange={handleFileChange}
               className="input-premium w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent-red file:text-white hover:file:bg-accent-red-hover"
             />
             {imageFile && (
@@ -467,7 +497,7 @@ export default function AdminPage() {
               type="date"
               className="input-premium"
               value={reportRange.start}
-              onChange={(e) => setReportRange({ ...reportRange, start: e.target.value })}
+              onChange={(e) => handleReportRangeChange('start', e.target.value)}
             />
           </div>
           <div className="flex flex-col">
@@ -476,7 +506,7 @@ export default function AdminPage() {
               type="date"
               className="input-premium"
               value={reportRange.end}
-              onChange={(e) => setReportRange({ ...reportRange, end: e.target.value })}
+              onChange={(e) => handleReportRangeChange('end', e.target.value)}
             />
           </div>
           <button onClick={handleGenerateReport} className="btn-primary">

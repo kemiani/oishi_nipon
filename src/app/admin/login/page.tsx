@@ -5,16 +5,21 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 
+interface FormData {
+  email: string;
+  password: string;
+}
+
 export default function AdminLoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     email: '',
     password: ''
   });
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -27,26 +32,40 @@ export default function AdminLoginPage() {
 
       if (error) throw error;
 
+      if (!data.user) {
+        throw new Error('No se pudo obtener la información del usuario');
+      }
+
       // Verificar si el usuario tiene permisos de admin
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
         .single();
+
+      if (profileError) {
+        console.error('Error al obtener perfil:', profileError);
+        throw new Error('Error al verificar permisos');
+      }
 
       if (profile?.role !== 'admin') {
         await supabase.auth.signOut();
         throw new Error('No tienes permisos de administrador');
       }
 
-      // Usar router.push con refresh para asegurar que el middleware se ejecute
-      router.refresh();
+      // Redirigir al panel de admin
       router.push('/admin');
-    } catch (error: any) {
-      setError(error.message || 'Error al iniciar sesión');
+      router.refresh();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al iniciar sesión';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleInputChange = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
   return (
@@ -69,7 +88,7 @@ export default function AdminLoginPage() {
               type="email"
               required
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={handleInputChange('email')}
               className="input-premium w-full"
               placeholder="admin@oishinpon.com"
             />
@@ -84,7 +103,7 @@ export default function AdminLoginPage() {
               type="password"
               required
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={handleInputChange('password')}
               className="input-premium w-full"
               placeholder="••••••••"
             />

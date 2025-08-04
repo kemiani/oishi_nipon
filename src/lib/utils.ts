@@ -59,7 +59,7 @@ export const isValidPhoneNumber = (phone: string): boolean => {
  */
 export const normalizePhoneForWhatsApp = (phone: string): string => {
   // Remover espacios, guiones y paréntesis
-  let normalized = phone.replace(/[\s\-\(\)]/g, '');
+  const normalized = phone.replace(/[\s\-\(\)]/g, '');
   
   // Si empieza con +54, mantenerlo
   if (normalized.startsWith('+54')) {
@@ -84,12 +84,19 @@ export const normalizePhoneForWhatsApp = (phone: string): string => {
   return normalized;
 };
 
+// Tipo para los items del carrito en el mensaje de WhatsApp
+interface WhatsAppCartItem {
+  product: { name: string };
+  quantity: number;
+  selected_variations: Array<{ name: string }>;
+}
+
 /**
  * Generar mensaje de WhatsApp para pedido
  */
 export const generateWhatsAppMessage = (
   customerName: string,
-  items: Array<{product: {name: string}, quantity: number, selected_variations: Array<{name: string}>}>,
+  items: WhatsAppCartItem[],
   total: number,
   deliveryType: 'delivery' | 'pickup',
   address?: string,
@@ -163,12 +170,29 @@ export const calculatePreparationTime = (itemCount: number): number => {
   return baseTime + (itemCount * timePerItem);
 };
 
+// Tipo para los horarios de apertura
+interface DaySchedule {
+  is_open: boolean;
+  open_time?: string;
+  close_time?: string;
+}
+
+interface OpeningHours {
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+  sunday: DaySchedule;
+}
+
 /**
  * Verificar si el restaurante está abierto
  */
-export const isRestaurantOpen = (openingHours: any): boolean => {
+export const isRestaurantOpen = (openingHours: OpeningHours): boolean => {
   const now = new Date();
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayNames: Array<keyof OpeningHours> = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const currentDay = dayNames[now.getDay()];
   
   const todaySchedule = openingHours[currentDay];
@@ -178,8 +202,8 @@ export const isRestaurantOpen = (openingHours: any): boolean => {
   }
 
   const currentTime = now.getHours() * 60 + now.getMinutes();
-  const openTime = parseTimeToMinutes(todaySchedule.open_time);
-  const closeTime = parseTimeToMinutes(todaySchedule.close_time);
+  const openTime = parseTimeToMinutes(todaySchedule.open_time || '00:00');
+  const closeTime = parseTimeToMinutes(todaySchedule.close_time || '23:59');
 
   // Manejar horarios que cruzan medianoche
   if (closeTime < openTime) {
@@ -200,8 +224,8 @@ const parseTimeToMinutes = (timeString: string): number => {
 /**
  * Obtener el próximo horario de apertura
  */
-export const getNextOpeningTime = (openingHours: any): string => {
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+export const getNextOpeningTime = (openingHours: OpeningHours): string => {
+  const days: Array<keyof OpeningHours> = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const today = new Date().getDay();
   
   for (let i = 1; i <= 7; i++) {
@@ -221,7 +245,7 @@ export const getNextOpeningTime = (openingHours: any): string => {
 /**
  * Debounce function
  */
-export const debounce = <T extends (...args: any[]) => any>(
+export const debounce = <T extends (...args: Parameters<T>) => ReturnType<T>>(
   func: T,
   wait: number
 ): ((...args: Parameters<T>) => void) => {

@@ -44,6 +44,12 @@ export interface CartItem {
   subtotal: number;
 }
 
+interface DaySchedule {
+  is_open: boolean;
+  open_time?: string;
+  close_time?: string;
+}
+
 export interface RestaurantSettings {
   id?: string;
   name: string;
@@ -52,7 +58,15 @@ export interface RestaurantSettings {
   address: string;
   is_delivery_free: boolean;
   delivery_cost: number;
-  opening_hours: Record<string, any>;
+  opening_hours: {
+    monday: DaySchedule;
+    tuesday: DaySchedule;
+    wednesday: DaySchedule;
+    thursday: DaySchedule;
+    friday: DaySchedule;
+    saturday: DaySchedule;
+    sunday: DaySchedule;
+  };
   is_open: boolean;
   social_media?: Record<string, string>;
 }
