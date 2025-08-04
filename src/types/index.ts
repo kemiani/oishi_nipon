@@ -105,10 +105,19 @@ export interface CreateProductForm {
   name: string;
   description?: string;
   price: number;
-  category: string;
-  category_id?: string;
-  image_url?: string;
+  category: string;         
+  image_url?: string;     
   stock?: number;
   is_available?: boolean;
   variations?: Variation[];
+}
+
+export interface ProductInsert {
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image_url?: string | null;  // Puede ser null si aún no tiene imagen
+  is_available: boolean;
+  stock: number;
 }
