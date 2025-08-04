@@ -1,0 +1,105 @@
+/* CSS exclusivo para el panel de administración */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* En pantallas pequeñas el formulario aparece arriba y la lista abajo.
+   En pantallas medianas y grandes se colocan en columnas */
+.productsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+@media (min-width: 768px) {
+  .productsWrapper {
+    flex-direction: row;
+  }
+}
+
+/* Cartas para formulario y lista */
+.formCard,
+.listCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+}
+.formCard {
+  flex: 1 1 320px;
+}
+.listCard {
+  flex: 2 1 0;
+}
+
+/* Estilos de elementos de la lista de productos */
+.productItem {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-primary);
+}
+.productItem:last-child {
+  border-bottom: none;
+}
+.productImage {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid var(--border-primary);
+}
+.productDetails {
+  flex: 1;
+}
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Botones específicos para acciones rápidas */
+.iconButton {
+  background: rgba(255, 23, 68, 0.1);
+  border: 1px solid var(--accent-red);
+  color: var(--accent-red);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.iconButton:hover {
+  background: var(--accent-red);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Mejorar la vista previa de la imagen en el formulario */
+.previewContainer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(32, 32, 32, 0.75);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+.previewImage {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+}
+.previewInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}

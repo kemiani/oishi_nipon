@@ -13,6 +13,7 @@ import { supabase, supabaseHelpers } from '../../lib/supabase';
 import { formatPrice } from '../../lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import type { Product, Category, Order } from '../../types';
+import styles from './admin.module.css';
 
 /* ═════════ Tipos ─════════ */
 type AdminTab = 'products' | 'categories' | 'orders' | 'reports';
@@ -71,8 +72,10 @@ export default function AdminPage() {
       setUploadingImage(true);
       const ext      = file.name.split('.').pop();
       const filePath = `products/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from('product-images').upload(filePath, file);
-      if (error) throw error;
+      // Incluimos contentType y upsert para mejorar compatibilidad con Supabase
+      const { error: uploadError } = await supabase.storage.from('product-images')
+        .upload(filePath, file, { contentType: file.type || 'image/*', upsert: false });
+      if (uploadError) throw uploadError;
       const { data } = supabase.storage.from('product-images').getPublicUrl(filePath);
       showToast('Imagen subida ✅');
       return data.publicUrl;
@@ -202,104 +205,106 @@ export default function AdminPage() {
     const placeholderImg = 'https://placehold.co/80x80?text=Sin+imagen';
 
     return (
-      <div className="space-y-8">
-        {/* Lista */}
-        <section className="glass-card p-6">
-          <h2 className="section-title">Productos</h2>
-          {products.length === 0 ? (
-            <p className="empty-msg">No hay productos.</p>
-          ) : (
-            <ul className="divide-y divide-border-primary">
-              {products.map(p => (
-                <li key={p.id} className="py-4 flex gap-4 items-start">
-                  <img
-                    src={p.image_url || placeholderImg}
-                    alt={p.name}
-                    className="w-20 h-20 object-cover rounded-md border border-border-primary"
-                  />
-                  <div className="flex-1">
-                    <p className="font-semibold leading-tight">{p.name}</p>
-                    {p.description && <p className="text-sm text-gray-400 mt-1">{p.description}</p>}
-                    <p className="text-xs text-gray-500 mt-1">{categoryMap[p.category] || ''}</p>
-                    <p className="text-accent-gold text-sm mt-1">{formatPrice(p.price)}</p>
-                  </div>
-                    <div className="flex gap-2 shrink-0 items-start">
-                      <button onClick={() => startEdit(p)}            className="btn-secondary btn-icon" title="Editar">✏️</button>
-                      <button onClick={() => handleDeleteProduct(p.id)} className="btn-secondary btn-icon" title="Eliminar">🗑️</button>
-                    </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      <div className={styles.container}>
+        <div className={styles.productsWrapper}>
+          {/* Formulario */}
+          <section className={`${styles.formCard}`}>
+            <h3 className="section-subtitle mb-4">
+              {editingProduct ? 'Editar producto' : 'Agregar producto'}
+            </h3>
+            {/* Usamos un formulario para evitar envíos accidentales y mantener el scroll */}
+            <form onSubmit={(e) => { e.preventDefault(); handleCreateOrUpdate(); }} className="grid md:grid-cols-1 gap-4">
+              <input className="input-premium" placeholder="Nombre"
+                value={newProduct.name}
+                onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} />
 
-        {/* Formulario */}
-        <section className="glass-card p-6">
-          <h3 className="section-subtitle">
-            {editingProduct ? 'Editar producto' : 'Agregar producto'}
-          </h3>
+              <select className="input-premium"
+                value={newProduct.category_id}
+                onChange={e => setNewProduct({ ...newProduct, category_id: e.target.value })}>
+                <option value="">Selecciona categoría</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-6">
-            <input className="input-premium" placeholder="Nombre"
-              value={newProduct.name}
-              onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} />
+              <textarea className="input-premium" rows={2} placeholder="Descripción"
+                value={newProduct.description}
+                onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} />
 
-            <select className="input-premium"
-              value={newProduct.category_id}
-              onChange={e => setNewProduct({ ...newProduct, category_id: e.target.value })}>
-              <option value="">Selecciona categoría</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+              <input type="number" className="input-premium"
+                placeholder="Precio"
+                value={newProduct.price}
+                onChange={e => setNewProduct({ ...newProduct, price: +e.target.value })} />
 
-            <input className="input-premium md:col-span-2" placeholder="Descripción"
-              value={newProduct.description}
-              onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} />
-
-            <input type="number" className="input-premium"
-              placeholder="Precio"
-              value={newProduct.price}
-              onChange={e => setNewProduct({ ...newProduct, price: +e.target.value })} />
-
-            {/* Inputs de imagen: URL y archivo */}
-            <div className="md:col-span-2 flex flex-col sm:flex-row gap-4">
-              <input className="input-premium flex-1" placeholder="URL de la imagen"
-                value={newProduct.image_url}
-                onChange={e => setNewProduct({ ...newProduct, image_url: e.target.value })} />
-              <input type="file" accept="image/*" className="input-premium file:cursor-pointer flex-1"
-                onChange={e => setImageFile(e.target.files?.[0] || null)} />
-            </div>
-
-            {/* Vista previa de la imagen seleccionada o URL ingresada */}
-            {imagePreview && (
-              <div className="md:col-span-2 flex items-center gap-4 bg-gray-800/50 p-3 rounded-md border border-border-primary">
-                <img src={imagePreview} alt="Vista previa" className="w-24 h-24 object-cover rounded-md border border-border-primary" />
-                <div className="flex flex-col">
-                  <p className="text-sm mb-2">Vista previa</p>
-                  <button type="button"
-                    onClick={() => {
-                      setImageFile(null);
-                      setNewProduct({ ...newProduct, image_url: '' });
-                    }}
-                    className="btn-secondary btn-sm w-max">Quitar imagen
-                  </button>
-                </div>
+              {/* Inputs de imagen: URL y archivo */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <input className="input-premium flex-1" placeholder="URL de la imagen"
+                  value={newProduct.image_url}
+                  onChange={e => setNewProduct({ ...newProduct, image_url: e.target.value })} />
+                <input type="file" accept="image/*" className="input-premium file:cursor-pointer flex-1"
+                  onChange={e => setImageFile(e.target.files?.[0] || null)} />
               </div>
-            )}
-          </div>
 
-          <div className="flex gap-2">
-            <button
-              disabled={uploadingImage}
-              onClick={handleCreateOrUpdate}
-              className="btn-primary flex-1">
-              {uploadingImage ? 'Subiendo…' : (editingProduct ? 'Actualizar' : 'Crear')}
-            </button>
+              {/* Vista previa de la imagen seleccionada o URL ingresada */}
+              {imagePreview && (
+                <div className={styles.previewContainer}>
+                  <img src={imagePreview} alt="Vista previa" className={styles.previewImage} />
+                  <div className={styles.previewInfo}>
+                    <p className="text-sm">Vista previa</p>
+                    <button type="button"
+                      onClick={() => {
+                        setImageFile(null);
+                        setNewProduct({ ...newProduct, image_url: '' });
+                      }}
+                      className="btn-secondary btn-sm w-max">Quitar imagen
+                    </button>
+                  </div>
+                </div>
+              )}
 
-            {editingProduct && (
-              <button onClick={resetProductForm} className="btn-secondary">Cancelar</button>
+              <div className="flex gap-2">
+                <button
+                  disabled={uploadingImage}
+                  className="btn-primary flex-1"
+                  type="submit">
+                  {uploadingImage ? 'Subiendo…' : (editingProduct ? 'Actualizar' : 'Crear')}
+                </button>
+
+                {editingProduct && (
+                  <button type="button" onClick={resetProductForm} className="btn-secondary">Cancelar</button>
+                )}
+              </div>
+            </form>
+          </section>
+
+          {/* Lista */}
+          <section className={`${styles.listCard}`}>
+            <h2 className="section-title mb-4">Productos</h2>
+            {products.length === 0 ? (
+              <p className="empty-msg">No hay productos.</p>
+            ) : (
+              <ul>
+                {products.map(p => (
+                  <li key={p.id} className={styles.productItem}>
+                    <img
+                      src={p.image_url || placeholderImg}
+                      alt={p.name}
+                      className={styles.productImage}
+                    />
+                    <div className={styles.productDetails}>
+                      <p className="font-semibold leading-tight">{p.name}</p>
+                      {p.description && <p className="text-sm text-gray-400 mt-1">{p.description}</p>}
+                      <p className="text-xs text-gray-500 mt-1">{categoryMap[p.category] || ''}</p>
+                      <p className="text-accent-gold text-sm mt-1">{formatPrice(p.price)}</p>
+                    </div>
+                    <div className={styles.actions}>
+                      <button onClick={() => startEdit(p)}            className={styles.iconButton} title="Editar">✏️</button>
+                      <button onClick={() => handleDeleteProduct(p.id)} className={styles.iconButton} title="Eliminar">🗑️</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     );
   };
