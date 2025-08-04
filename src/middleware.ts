@@ -1,20 +1,21 @@
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+// src/middleware.ts -------------------------------------------------------
 import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
 
-async function supabaseFromMiddleware(req: NextRequest, res: NextResponse) {
-  // req.cookies en middleware ya está listo (no es Promise)
-  const store = req.cookies;                   // RequestCookies
+function supabaseFromMiddleware(req: NextRequest, res: NextResponse) {
+  const store = req.cookies;                       // RequestCookies
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll: () => store.getAll().map(c => ({ name: c.name, value: c.value })),
-        // Escribir cookies: usar res.cookies.set
+        getAll: () =>
+          store.getAll().map(({ name, value }) => ({ name, value })),
+
         setAll: (all) =>
           all.forEach(({ name, value, options }) =>
-            res.cookies.set({ name, value, ...options }),
+            res.cookies.set({ name, value, ...options })
           ),
       },
     },
@@ -22,8 +23,8 @@ async function supabaseFromMiddleware(req: NextRequest, res: NextResponse) {
 }
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = await supabaseFromMiddleware(req, res);
+  const res       = NextResponse.next();
+  const supabase  = supabaseFromMiddleware(req, res);
 
   const { data: { user } } = await supabase.auth.getUser();
 
