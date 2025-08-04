@@ -2,18 +2,16 @@ import { useState, useEffect } from 'react';
 import type { Product, Category, ProductInsert } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { supabaseHelpers } from '../../lib/supabase';
+// Si quieres Next image, descomenta la siguiente línea
+// import Image from 'next/image';
 
 interface Props {
   categories: Category[];
-  product: Product | null;   // null = nuevo, objeto = editar
+  product: Product | null;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-/**
- * Formulario modular para crear o editar productos.
- * 100% funcional para integración con Supabase Storage y DB.
- */
 export default function ProductForm({ categories, product, onSaved, onCancel }: Props) {
   const [form, setForm] = useState({
     name: '',
@@ -27,16 +25,15 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Cuando cambia el producto a editar, pre-llenar el form
   useEffect(() => {
     if (product) {
       setForm({
-        name:        product.name,
+        name: product.name,
         description: product.description,
-        price:       product.price,
-        category:    product.category,
-        image_url:   product.image_url || '',
-        stock:       product.stock ?? 1,
+        price: product.price,
+        category: product.category,
+        image_url: product.image_url || '',
+        stock: product.stock ?? 1,
       });
       setImagePreview(product.image_url || null);
     } else {
@@ -46,7 +43,6 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
     setImageFile(null);
   }, [product]);
 
-  // Preview de imagen local si se elige archivo
   useEffect(() => {
     if (imageFile) {
       const url = URL.createObjectURL(imageFile);
@@ -55,7 +51,6 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
     }
   }, [imageFile]);
 
-  // Manejar cambios de input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     setForm((prev) => ({
@@ -64,7 +59,6 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
     }));
   };
 
-  // Subida de imagen a Supabase Storage
   async function uploadImage(file: File): Promise<string | null> {
     try {
       setLoading(true);
@@ -83,13 +77,12 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
     }
   }
 
-  // Crear o editar producto
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!form.name || !form.category || form.price <= 0) {
-    alert('Completa nombre, categoría y precio');
-    return;
-  }
+    e.preventDefault();
+    if (!form.name || !form.category || form.price <= 0) {
+      alert('Completa nombre, categoría y precio');
+      return;
+    }
 
     let imageUrl = form.image_url.trim();
     if (!imageUrl && imageFile) {
@@ -97,7 +90,6 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
       if (up) imageUrl = up;
     }
 
-    // Payload con el tipo ProductInsert
     const payload: ProductInsert = {
       name: form.name.trim(),
       description: form.description.trim(),
@@ -167,7 +159,6 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
         placeholder="Stock"
         className="input-premium mb-2"
       />
-      {/* Imagen: URL directa o archivo */}
       <div className="flex flex-col sm:flex-row gap-2 mb-2">
         <input
           name="image_url"
@@ -185,14 +176,8 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
       </div>
       {imagePreview && (
         <div className="mb-2">
+          {/* Si quieres Next.js optimizado, cambia a <Image .../> */}
           <img src={imagePreview} alt="preview" className="w-24 h-24 object-cover rounded border" />
-          <button
-            type="button"
-            onClick={() => { setImageFile(null); setForm(f => ({ ...f, image_url: '' })); setImagePreview(null); }}
-            className="btn-secondary btn-sm"
-          >
-            Quitar imagen
-          </button>
         </div>
       )}
       <div className="flex gap-2">
@@ -208,7 +193,3 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
     </form>
   );
 }
-function preventDefault() {
-    throw new Error('Function not implemented.');
-}
-
