@@ -5,8 +5,10 @@
 export interface Category {
   id: string;
   name: string;
-  display_order?: number;
+  display_order: number;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface VariationOption {
@@ -27,12 +29,14 @@ export interface Variation {
 export interface Product {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   price: number;
   category: string;
-  image_url?: string | null;
+  image_url: string | null;
   is_available: boolean;
-  variations?: Variation[];
+  stock: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CartItem {

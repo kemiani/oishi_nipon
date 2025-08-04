@@ -1,11 +1,3 @@
-// ──────────────────────────────────────────────────────────────
-// Panel de administración – Oishi Nipon
-// Se ha mejorado la carga y vista previa de imágenes, así como la
-// presentación visual de la lista de productos y el formulario de
-// creación/edición. Esta versión mantiene la lógica de autenticación
-// intacta pero ofrece un panel más amigable y eficiente para el usuario.
-// ──────────────────────────────────────────────────────────────
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -29,20 +21,15 @@ interface NewProductForm {
 interface ReportStats { total: number; count: number; }
 interface ReportRange { start: string; end: string; }
 
-/* ═════════ Componente principal ─════════ */
 export default function AdminPage() {
-  /* ─── Auth ─── */
   const { user, loading, signOut } = useAuth(true);
 
-  /* ─── Pestaña activa ─── */
   const [activeTab, setActiveTab] = useState<AdminTab>('products');
 
-  /* ─── Datos ─── */
   const [products,   setProducts]   = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders,     setOrders]     = useState<Order[]>([]);
 
-  /* ─── Formularios ─── */
   const [newProduct, setNewProduct] = useState<NewProductForm>({
     name: '', description: '', price: 0, category_id: '', image_url: '',
   });
@@ -55,7 +42,6 @@ export default function AdminPage() {
   const [reportRange, setReportRange]         = useState<ReportRange>({ start: '', end: '' });
   const [reportStats, setReportStats]         = useState<ReportStats | null>(null);
 
-  /* ═════════ Cargar datos al montar ═════════ */
   useEffect(() => {
     if (user && !loading) {
       fetchProducts(); fetchCategories(); fetchOrders();
@@ -72,7 +58,6 @@ export default function AdminPage() {
       setUploadingImage(true);
       const ext      = file.name.split('.').pop();
       const filePath = `products/${crypto.randomUUID()}.${ext}`;
-      // Incluimos contentType y upsert para mejorar compatibilidad con Supabase
       const { error: uploadError } = await supabase.storage.from('product-images')
         .upload(filePath, file, { contentType: file.type || 'image/*', upsert: false });
       if (uploadError) throw uploadError;
@@ -95,7 +80,7 @@ export default function AdminPage() {
       name:        p.name,
       description: p.description || '',
       price:       p.price,
-      category_id: p.category,   // mapea a id para el <select>
+      category_id: p.category,
       image_url:   p.image_url || '',
     });
     setImageFile(null);
@@ -109,26 +94,25 @@ export default function AdminPage() {
   };
 
   const handleCreateOrUpdate = async () => {
-    /* Validación mínima */
     if (!newProduct.name || !newProduct.category_id || newProduct.price <= 0) {
       return alert('Completa nombre, categoría y precio');
     }
 
-    /* Determinar imagen: si existe URL usarla, de lo contrario subir archivo */
     let imageUrl = newProduct.image_url.trim();
     if (!imageUrl && imageFile) {
       const up = await uploadImage(imageFile);
       if (up) imageUrl = up;
     }
 
-    /* Payload compatible con Omit<Product, 'id' | 'variations'> */
+    // Solo los campos requeridos por la tabla y el helper
     const payload = {
       name:        newProduct.name.trim(),
       description: newProduct.description.trim(),
       price:       newProduct.price,
-      category:    newProduct.category_id,   // ✔️ campo correcto
+      category:    newProduct.category_id,
       image_url:   imageUrl || null,
       is_available: true,
+      stock: editingProduct ? editingProduct.stock : 1, // Valor por defecto para nuevos productos
     };
 
     let error;
@@ -155,6 +139,8 @@ export default function AdminPage() {
       name: newCategoryName.trim(),
       is_active: true,
       display_order: categories.length + 1,
+      created_at: '',
+      updated_at: ''
     });
     if (!error) { showToast('Categoría creada ✚'); setNewCategoryName(''); fetchCategories(); }
   };
@@ -178,7 +164,6 @@ export default function AdminPage() {
 
   /* ═════════ Vista previa de imagen ═════════ */
   useEffect(() => {
-    // Actualiza la vista previa cuando cambia la URL o el archivo
     if (imageFile) {
       const url = URL.createObjectURL(imageFile);
       setImagePreview(url);
@@ -191,17 +176,13 @@ export default function AdminPage() {
   }, [imageFile, newProduct.image_url]);
 
   /* ═════════ Sub-componentes de pestañas ═════════ */
-
-  /* Productos */
   const ProductsTab = () => {
-    // Mapa rápido para mostrar nombre de categoría a partir de su id
     const categoryMap = useMemo(() => {
       const map: Record<string, string> = {};
       categories.forEach(c => { map[c.id] = c.name; });
       return map;
     }, [categories]);
 
-    // Placeholder para productos sin imagen
     const placeholderImg = 'https://placehold.co/80x80?text=Sin+imagen';
 
     return (
@@ -212,7 +193,6 @@ export default function AdminPage() {
             <h3 className="section-subtitle mb-4">
               {editingProduct ? 'Editar producto' : 'Agregar producto'}
             </h3>
-            {/* Usamos un formulario para evitar envíos accidentales y mantener el scroll */}
             <form onSubmit={(e) => { e.preventDefault(); handleCreateOrUpdate(); }} className="grid md:grid-cols-1 gap-4">
               <input className="input-premium" placeholder="Nombre"
                 value={newProduct.name}
@@ -243,7 +223,6 @@ export default function AdminPage() {
                   onChange={e => setImageFile(e.target.files?.[0] || null)} />
               </div>
 
-              {/* Vista previa de la imagen seleccionada o URL ingresada */}
               {imagePreview && (
                 <div className={styles.previewContainer}>
                   <img src={imagePreview} alt="Vista previa" className={styles.previewImage} />
@@ -267,7 +246,6 @@ export default function AdminPage() {
                   type="submit">
                   {uploadingImage ? 'Subiendo…' : (editingProduct ? 'Actualizar' : 'Crear')}
                 </button>
-
                 {editingProduct && (
                   <button type="button" onClick={resetProductForm} className="btn-secondary">Cancelar</button>
                 )}
@@ -309,7 +287,6 @@ export default function AdminPage() {
     );
   };
 
-  /* Categorías */
   const CategoriesTab = () => (
     <div className="space-y-8">
       <section className="glass-card p-6">
@@ -336,7 +313,6 @@ export default function AdminPage() {
     </div>
   );
 
-  /* Pedidos */
   const OrdersTab = () => (
     <section className="glass-card p-6">
       <h2 className="section-title mb-4">Pedidos recientes</h2>
@@ -377,11 +353,9 @@ export default function AdminPage() {
     </section>
   );
 
-  /* Reportes */
   const ReportsTab = () => (
     <section className="glass-card p-6 max-w-xl">
       <h2 className="section-title">Reporte de ventas</h2>
-
       <div className="flex flex-wrap gap-4 mt-4">
         <div className="flex flex-col">
           <label className="tiny-label">Desde</label>
@@ -398,7 +372,6 @@ export default function AdminPage() {
 
         <button onClick={handleGenerateReport} className="btn-primary h-max self-end">Generar</button>
       </div>
-
       {reportStats && (
         <div className="mt-6 space-y-2">
           <p>Total de pedidos: <span className="font-bold text-accent-gold">{reportStats.count}</span></p>
@@ -408,7 +381,6 @@ export default function AdminPage() {
     </section>
   );
 
-  /* ═════════ Render principal ═════════ */
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
@@ -422,7 +394,6 @@ export default function AdminPage() {
       {/* Sidebar */}
       <aside className="w-full sm:w-48 lg:w-60 bg-[#0a0a0a]/70 backdrop-blur-md border-r border-border-primary p-4 space-y-4 sticky top-0 h-screen">
         <h1 className="text-xl font-bold text-center">Oishi Admin</h1>
-
         {(['products','categories','orders','reports'] as AdminTab[]).map(tab => (
           <button
             key={tab}
@@ -434,10 +405,8 @@ export default function AdminPage() {
             {tab.charAt(0).toUpperCase()+tab.slice(1)}
           </button>
         ))}
-
         <button onClick={signOut} className="btn-secondary w-full mt-8">Cerrar sesión</button>
       </aside>
-
       {/* Contenido */}
       <main className="flex-1 p-6 md:p-10 space-y-10 overflow-y-auto">
         {activeTab === 'products'   && <ProductsTab />}
@@ -451,5 +420,4 @@ export default function AdminPage() {
 
 /* ═════════ Utilidad de “toast” simple ═════════ */
 function showToast(msg: string) { alert(msg); }
-
 /* Fin del archivo */
