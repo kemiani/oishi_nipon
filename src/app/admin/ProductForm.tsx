@@ -84,8 +84,8 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
   }
 
   // Crear o editar producto
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    preventDefault();
     if (!form.name || !form.category || form.price <= 0) {
       alert('Completa nombre, categoría y precio');
       return;
@@ -208,3 +208,7 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
     </form>
   );
 }
+function preventDefault() {
+    throw new Error('Function not implemented.');
+}
+

@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
  * Define pestañas y renderiza la vista correspondiente.........
  */
 export default function AdminPage() {
-  const { user, loading, signOut } = useAuth(true);
+  const { loading, signOut } = useAuth(true);
   const [tab, setTab] = useState<'products'|'categories'|'orders'|'reports'>('products');
 
   if (loading) return (
