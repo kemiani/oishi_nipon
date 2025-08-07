@@ -562,3 +562,177 @@ html, body {
 .bg-accent-red-light {
   background-color: rgba(255, 23, 68, 0.05);
 }
+
+/* ----------  CHECKOUT STYLES  ---------- */
+/* Agregar al final de globals.css */
+
+/* Labels mejorados */
+.label-premium {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #d1d5db;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.tiny-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9ca3af;
+  margin-bottom: 0.25rem;
+}
+
+/* Estados de hover para glass cards */
+.glass-card:hover {
+  border-color: rgba(255, 23, 68, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Botones de método de pago/entrega activos */
+.bg-accent-red-light {
+  background: rgba(255, 23, 68, 0.08) !important;
+  border-color: var(--accent-red) !important;
+}
+
+/* Loader spinner */
+.spinner-mini {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* Tabs del admin */
+.btn-tab {
+  background: transparent;
+  color: #9ca3af;
+  padding: 0.75rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-weight: 500;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.btn-tab:hover {
+  background: rgba(255, 23, 68, 0.05);
+  border-color: rgba(255, 23, 68, 0.2);
+  color: #fff;
+}
+
+.btn-tab-active {
+  background: var(--accent-red);
+  color: #fff;
+  border-color: var(--accent-red);
+}
+
+/* Danger button */
+.btn-danger {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+/* Section titles */
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #fff, #d1d5db);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Mejoras para inputs file */
+input[type="file"]::-webkit-file-upload-button {
+  visibility: hidden;
+}
+
+input[type="file"]::before {
+  content: 'Seleccionar archivo';
+  display: inline-block;
+  background: var(--accent-red);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-right: 12px;
+}
+
+input[type="file"]:hover::before {
+  background: var(--accent-red-hover);
+}
+
+/* Animaciones suaves */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideup {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Mejora para tablas */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+table tbody tr {
+  transition: background 0.2s;
+}
+
+table tbody tr:hover {
+  background: rgba(255, 23, 68, 0.05);
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-red);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-pulse {
+  animation: shimmer 2s ease-in-out infinite;
+}

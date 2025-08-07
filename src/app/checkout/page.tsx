@@ -1,11 +1,13 @@
 // src/app/checkout/page.tsx - Premium Checkout Experience
 'use client';
 
+import './checkout.modules.css';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '../../store/cartStore';
 import { formatPrice, isValidPhoneNumber } from '../../lib/utils';
 import type { OrderForm, RestaurantSettings } from '../../types';
+
 
 // Componente de paso del checkout
 const CheckoutStep = ({ step, currentStep, title, description }: {

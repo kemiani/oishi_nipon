@@ -1,119 +1,77 @@
-// src/app/page.tsx – Home page with product listing and filtering
-//
-// This component renders the main shopping interface for Oishi Nipon.  A
-// sticky navigation bar, category filter and responsive product grid
-// provide convenient browsing【648140313359357†L73-L84】.  Adding an item to the
-// cart triggers a toast notification and updates the cart badge.  A
-// fixed checkout bar summarises the order and leads to the cart.
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCartStore } from '../store/cartStore';
 import { formatPrice } from '../lib/utils';
-import { Product } from '@/types';
-
-// Predefined categories.  Keeping the list short reduces
-// choice overload and helps users find what they need faster【63139696847701†L68-L71】.
-const categories = [
-  { id: 'all', label: 'Todo', icon: '🍣' },
-  { id: 'sushi', label: 'Sushi', icon: '🍣' },
-  { id: 'rolls', label: 'Rolls', icon: '🥢' },
-  { id: 'bebidas', label: 'Bebidas', icon: '🍶' },
-];
-
-// Example product catalogue.  In a real application this data would
-// come from your backend.  High quality photos and concise copy
-// convey the value of each dish quickly【648140313359357†L127-L140】.
-const products = [
-  {
-    id: 'p1',
-    name: 'Nigiri de salmón',
-    description: 'Delicioso nigiri con salmón fresco.',
-    category: 'sushi',
-    price: 4500,
-    image_url:
-      'https://images.unsplash.com/photo-1603886866603-1203ad715c26?auto=format&fit=crop&w=600&q=60',
-  },
-  {
-    id: 'p2',
-    name: 'Uramaki vegetal',
-    description: 'Roll relleno de pepino, aguacate y mango.',
-    category: 'rolls',
-    price: 3800,
-    image_url:
-      'https://images.unsplash.com/photo-1580810737274-6cc0b2f7c802?auto=format&fit=crop&w=600&q=60',
-  },
-  {
-    id: 'p3',
-    name: 'California roll',
-    description: 'Cangrejo, aguacate y tobiko. Un clásico imperdible.',
-    category: 'rolls',
-    price: 4200,
-    image_url:
-      'https://images.unsplash.com/photo-1581091215367-634fb6d30e5a?auto=format&fit=crop&w=600&q=60',
-  },
-  {
-    id: 'p4',
-    name: 'Sashimi variado',
-    description: 'Selección de cortes de pescado y mariscos.',
-    category: 'sushi',
-    price: 5600,
-    image_url:
-      'https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=600&q=60',
-  },
-  {
-    id: 'p5',
-    name: 'Sake junmai',
-    description: 'Auténtico sake japonés para acompañar tu sushi.',
-    category: 'bebidas',
-    price: 3000,
-    image_url:
-      'https://images.unsplash.com/photo-1577312976531-78a3af10299e?auto=format&fit=crop&w=600&q=60',
-  },
-  {
-    id: 'p6',
-    name: 'Cerveza japonesa',
-    description: 'Cerveza suave y refrescante de origen nipón.',
-    category: 'bebidas',
-    price: 2800,
-    image_url:
-      'https://images.unsplash.com/photo-1551022370-597a0891f9f7?auto=format&fit=crop&w=600&q=60',
-  },
-];
+import { Product, Category } from '@/types';
+import { supabaseHelpers } from '../lib/supabase';
 
 export default function HomePage() {
   const { addItem, getTotalItems, getSubtotal } = useCartStore();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showToast, setShowToast] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar productos y categorías desde Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [{ data: productsData }, { data: categoriesData }] = await Promise.all([
+          supabaseHelpers.getProducts(),
+          supabaseHelpers.getCategories(),
+        ]);
+        
+        // Solo mostrar productos disponibles
+        const availableProducts = (productsData || []).filter(p => p.is_available);
+        setProducts(availableProducts);
+        setCategories(categoriesData || []);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Crear categorías dinámicas basadas en los productos disponibles
+  const dynamicCategories = useMemo(() => {
+    const baseCategories = [{ id: 'all', name: 'Todo', display_order: 0 }];
+    
+    // Agregar solo categorías que tienen productos
+    const categoriesWithProducts = categories.filter(category => 
+      products.some(product => product.category === category.id)
+    );
+    
+    return [...baseCategories, ...categoriesWithProducts];
+  }, [categories, products]);
+
+  // Obtener el nombre de la categoría
+  const getCategoryName = (categoryId: string) => {
+    if (categoryId === 'all') return 'Todo';
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || 'Sin categoría';
+  };
 
   // Filter products by the currently selected category.  The
   // computation is memoised to avoid recalculating on every render.
   const filteredProducts = useMemo(() => {
     if (selectedCategory === 'all') return products;
     return products.filter((p) => p.category === selectedCategory);
-  }, [selectedCategory]);
+  }, [selectedCategory, products]);
 
   /**
    * Adds a product to the cart and shows a short toast.  The cart
    * store should handle merging quantities for existing products.
    */
-  const handleAddToCart = (product: typeof products[0]) => {
-    // Convertir el producto del ejemplo al formato esperado por el store
-    const productForCart: Product = {
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      category: product.category,
-      image_url: product.image_url,
-      is_available: true,
-      variations: []
-    };
-    
-    addItem(productForCart, [], 1);
+  const handleAddToCart = (product: Product) => {
+    addItem(product, [], 1);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
   };
@@ -137,54 +95,75 @@ export default function HomePage() {
       {/* Category filter */}
       <div className="category-filter-row">
         <div className="category-filter">
-          {categories.map((cat) => (
+          {dynamicCategories.map((cat) => (
             <button
               key={cat.id}
               className={`category-btn ${selectedCategory === cat.id ? 'active' : ''}`}
               onClick={() => setSelectedCategory(cat.id)}
             >
-              <span className="icon">{cat.icon}</span>
-              <span>{cat.label}</span>
+              <span className="icon">🍣</span>
+              <span>{getCategoryName(cat.id)}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Product grid */}
-      <div className="products-grid">
-        {filteredProducts.map((product) => (
-          <div key={product.id} className="product-card">
-            <div className="product-image">
-              {product.image_url ? (
-                <Image 
-                  src={product.image_url} 
-                  alt={product.name}
-                  width={600}
-                  height={400}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="flex items-center justify-center w-full h-full text-4xl">
+      {loading ? (
+        <div className="flex justify-center items-center py-20">
+          <div className="loading-spinner"></div>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-gray-400 text-lg">
+            {selectedCategory === 'all' 
+              ? 'No hay productos disponibles' 
+              : `No hay productos en la categoría "${getCategoryName(selectedCategory)}"`
+            }
+          </p>
+        </div>
+      ) : (
+        <div className="products-grid">
+          {filteredProducts.map((product) => (
+            <div key={product.id} className="product-card">
+              <div className="product-image">
+                {product.image_url ? (
+                  <Image 
+                    src={product.image_url} 
+                    alt={product.name}
+                    width={600}
+                    height={400}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.parentElement?.querySelector('.fallback-icon') as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div className={`fallback-icon flex items-center justify-center w-full h-full text-4xl ${product.image_url ? 'hidden' : ''}`}>
                   🍣
                 </div>
-              )}
-            </div>
-            <div className="product-content">
-              <h3 className="product-title">{product.name}</h3>
-              <p className="product-description">{product.description}</p>
-              <div className="product-meta">
-                <span className="price">{formatPrice(product.price)}</span>
-                <button
-                  className="add-btn"
-                  onClick={() => handleAddToCart(product)}
-                >
-                  Agregar
-                </button>
+              </div>
+              <div className="product-content">
+                <h3 className="product-title">{product.name}</h3>
+                <p className="product-description">{product.description}</p>
+                <div className="product-meta">
+                  <span className="price">{formatPrice(product.price)}</span>
+                  <button
+                    className="add-btn"
+                    onClick={() => handleAddToCart(product)}
+                    disabled={!product.is_available || product.stock <= 0}
+                  >
+                    {product.stock <= 0 ? 'Agotado' : 'Agregar'}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Barra de checkout fija */}
       {getTotalItems() > 0 && (
