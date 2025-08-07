@@ -245,7 +245,7 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
               className="input-premium w-full"
             />
             
-            {/* Upload de archivo */}
+            {/* Upload de archivo *****/}
             <div className="relative">
               <input
                 type="file"
