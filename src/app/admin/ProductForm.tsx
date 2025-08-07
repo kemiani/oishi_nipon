@@ -250,7 +250,7 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
               <input
                 type="file"
                 accept="image/*"
-                onChange={e => setImageFile(e.target.files?.[0] || null)}
+                onChange={event => setImageFile(event.target.files?.[0] || null)}
                 className="input-premium w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent-red file:text-white hover:file:bg-accent-red-hover"
               />
               {uploadError && (
