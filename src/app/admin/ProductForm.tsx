@@ -1,4 +1,8 @@
+// src/app/admin/ProductForm.tsx
+'use client';
+
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import type { Product, Category, ProductInsert } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { supabaseHelpers } from '../../lib/supabase';
@@ -10,7 +14,13 @@ interface Props {
   onCancel: () => void;
 }
 
-export default function ProductForm({ categories, product, onSaved, onCancel }: Props) {
+export default function ProductForm({
+  categories,
+  product,
+  onSaved,
+  onCancel,
+}: Props) {
+  /* ----------  STATE  ---------- */
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -24,94 +34,98 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
   const [loading, setLoading] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
+  /* ----------  EFFECTS  ---------- */
+  // Pre-cargar datos si estamos editando
   useEffect(() => {
-    if (product) {
-      setForm({
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        category: product.category,
-        image_url: product.image_url || '',
-        stock: product.stock ?? 1,
-      });
-      setImagePreview(product.image_url || null);
-    }
+    if (!product) return;
+    setForm({
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      image_url: product.image_url || '',
+      stock: product.stock ?? 1,
+    });
+    setImagePreview(product.image_url || null);
   }, [product]);
 
+  // Vista previa local de la imagen
   useEffect(() => {
-    if (imageFile) {
-      const url = URL.createObjectURL(imageFile);
-      setImagePreview(url);
-      return () => URL.revokeObjectURL(url);
-    }
+    if (!imageFile) return;
+    const url = URL.createObjectURL(imageFile);
+    setImagePreview(url);
+    return () => URL.revokeObjectURL(url);
   }, [imageFile]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
+  /* ----------  HANDLERS  ---------- */
+  const handleChange = (
+    event: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value, type } = event.target;
     setForm(prev => ({
       ...prev,
       [name]: type === 'number' ? Number(value) : value,
     }));
   };
 
-  // Intenta subir a Storage, si falla usa base64
+  // Sube a Storage; si falla, usa base64 como fallback
   async function uploadImage(file: File): Promise<string | null> {
     setLoading(true);
     setUploadError('');
-    
-    // Validar tamaño (max 2MB para base64)
+
     if (file.size > 2 * 1024 * 1024) {
-      setUploadError('Imagen muy grande (máx 2MB)');
+      setUploadError('Imagen muy grande (máx 2 MB)');
       setLoading(false);
       return null;
     }
 
     try {
-      // Intento 1: Supabase Storage
       const ext = file.name.split('.').pop();
       const filePath = `products/${crypto.randomUUID()}.${ext}`;
-      
-      const { error: uploadError } = await supabase.storage
+
+      const { error } = await supabase.storage
         .from('product-images')
         .upload(filePath, file, { upsert: false });
-      
-      if (!uploadError) {
-        const { data } = supabase.storage.from('product-images').getPublicUrl(filePath);
+
+      if (!error) {
+        const { data } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath);
         setLoading(false);
         return data.publicUrl;
       }
-      
-      // Intento 2: Base64 como fallback
-      console.warn('Storage falló, usando base64:', uploadError);
+
+      // fallback → base64
+      console.warn('Storage falló, usando base64:', error);
       setUploadError('Usando almacenamiento alternativo');
-      
-      return new Promise((resolve) => {
+
+      return await new Promise(resolve => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          const base64 = reader.result as string;
           setLoading(false);
-          resolve(base64);
+          resolve(reader.result as string);
         };
         reader.readAsDataURL(file);
       });
-      
-    } catch (e) {
+    } catch {
       setUploadError('Error al procesar imagen');
       setLoading(false);
       return null;
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     if (!form.name || !form.category || form.price <= 0) {
       alert('Completa nombre, categoría y precio');
       return;
     }
 
     let imageUrl = form.image_url.trim();
-    
-    // Si hay archivo nuevo, subirlo
+
     if (imageFile) {
       const uploaded = await uploadImage(imageFile);
       if (uploaded) imageUrl = uploaded;
@@ -127,29 +141,30 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
       stock: form.stock || 1,
     };
 
-    let error;
-    if (product) {
-      ({ error } = await supabaseHelpers.updateProduct(product.id, payload));
-    } else {
-      ({ error } = await supabaseHelpers.createProduct(payload));
-    }
-    
-    if (!error) {
-      onSaved();
-      setImageFile(null);
-      setUploadError('');
-    } else {
+    const { error } = product
+      ? await supabaseHelpers.updateProduct(product.id, payload)
+      : await supabaseHelpers.createProduct(payload);
+
+    if (error) {
       alert('Error al guardar');
+      return;
     }
+
+    onSaved();
+    setImageFile(null);
+    setUploadError('');
   };
 
+  /* ----------  RENDER  ---------- */
   return (
     <form onSubmit={handleSubmit} className="glass-card p-6 max-w-xl mb-10">
       <h3 className="text-2xl font-bold mb-6 text-white">
         {product ? 'Editar producto' : 'Nuevo producto'}
       </h3>
-      
+
+      {/* ----------  CAMPOS  ---------- */}
       <div className="space-y-4">
+        {/* Nombre */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Nombre *
@@ -164,6 +179,7 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
           />
         </div>
 
+        {/* Descripción */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Descripción
@@ -178,6 +194,7 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
           />
         </div>
 
+        {/* Precio + Stock */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -185,33 +202,32 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
             </label>
             <input
               name="price"
-              value={form.price}
-              onChange={handleChange}
               type="number"
               min={0}
               step={100}
-              placeholder="0"
+              value={form.price}
+              onChange={handleChange}
               className="input-premium w-full"
               required
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Stock
             </label>
             <input
               name="stock"
-              value={form.stock}
-              onChange={handleChange}
               type="number"
               min={1}
-              placeholder="1"
+              value={form.stock}
+              onChange={handleChange}
               className="input-premium w-full"
             />
           </div>
         </div>
 
+        {/* Categoría */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Categoría *
@@ -225,16 +241,19 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
           >
             <option value="">Selecciona categoría</option>
             {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </div>
 
+        {/* Imagen */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Imagen
           </label>
-          
+
           <div className="space-y-3">
             {/* URL directa */}
             <input
@@ -244,13 +263,15 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
               placeholder="URL de imagen (opcional)"
               className="input-premium w-full"
             />
-            
-            {/* Upload de archivo *****/}
+
+            {/* Upload de archivo */}
             <div className="relative">
               <input
                 type="file"
                 accept="image/*"
-                onChange={event => setImageFile(event.target.files?.[0] || null)}
+                onChange={ev =>
+                  setImageFile(ev.currentTarget.files?.[0] || null)
+                }
                 className="input-premium w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent-red file:text-white hover:file:bg-accent-red-hover"
               />
               {uploadError && (
@@ -264,37 +285,39 @@ export default function ProductForm({ categories, product, onSaved, onCancel }: 
         {imagePreview && (
           <div className="p-4 bg-black/50 rounded-lg">
             <p className="text-sm text-gray-400 mb-2">Vista previa:</p>
-            <img 
-              src={imagePreview} 
-              alt="preview" 
+            <Image
+              src={imagePreview}
+              alt="preview"
+              width={128}
+              height={128}
+              unoptimized
               className="w-32 h-32 object-cover rounded-lg border border-border-primary"
             />
           </div>
         )}
       </div>
 
+      {/* ----------  ACCIONES  ---------- */}
       <div className="flex gap-3 mt-6">
-        <button 
-          className="btn-primary flex-1 justify-center" 
-          type="submit" 
+        <button
+          type="submit"
           disabled={loading}
+          className="btn-primary flex-1 justify-center"
         >
           {loading ? (
             <>
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
               Guardando...
             </>
+          ) : product ? (
+            'Actualizar'
           ) : (
-            product ? 'Actualizar' : 'Crear producto'
+            'Crear producto'
           )}
         </button>
-        
+
         {product && (
-          <button 
-            type="button" 
-            onClick={onCancel} 
-            className="btn-secondary"
-          >
+          <button type="button" onClick={onCancel} className="btn-secondary">
             Cancelar
           </button>
         )}
