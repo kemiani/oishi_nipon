@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Products from './Products';
 import Categories from './Categories';
@@ -11,20 +11,6 @@ import { useAuth } from '@/hooks/useAuth';
 export default function AdminPage() {
   const { loading, signOut } = useAuth(true);
   const [tab, setTab] = useState<'products'|'categories'|'orders'|'reports'>('products');
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  // Ctrl/Cmd + K → enfocar buscador
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const isK = e.key.toLowerCase() === 'k';
-      if ((e.ctrlKey || e.metaKey) && isK) {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
 
   if (loading) {
     return (
@@ -39,23 +25,11 @@ export default function AdminPage() {
       <Sidebar activeTab={tab} setTab={setTab} signOut={signOut} />
 
       <div className="flex-1 flex flex-col">
-        {/* Topbar */}
+        {/* Topbar (sin buscador) */}
         <header className="topbar">
           <div className="topbar__inner container-admin">
             <div className="topbar__brand">Oishi Admin</div>
-
-            <div className="search" role="search">
-              <span className="icon-left" aria-hidden>🔎</span>
-              <input
-                ref={searchRef}
-                placeholder="Buscar productos, pedidos… (Ctrl K)"
-                aria-label="Buscar en admin"
-              />
-              <span className="kbd">Ctrl K</span>
-            </div>
-
             <div className="topbar__spacer" />
-
             <div className="topbar__actions">
               <button className="btn btn-secondary" onClick={() => setTab('products')}>
                 + Nuevo
