@@ -211,7 +211,6 @@ export const supabaseHelpers = {
   },
 
   async createCategory(categoryData: { name: string; display_order?: number; is_active?: boolean }) {
-    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('categories')
       .insert([{
