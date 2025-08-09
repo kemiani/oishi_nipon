@@ -218,10 +218,9 @@ export async function POST(request: NextRequest) {
       orderForm.delivery_address,
       orderViewUrl
     );
-    const whatsappUrl = generateWhatsAppUrl(
-      settings?.whatsapp_number || settings?.phone || '',
-      whatsappMsg
-    );
+    const recipientRaw = settings?.whatsapp_number || settings?.phone || '';
+const recipient = normalizePhoneForWhatsApp(recipientRaw);
+const whatsappUrl = generateWhatsAppUrl(recipient, whatsappMsg);
 
     return NextResponse.json(
       { 

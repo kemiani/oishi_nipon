@@ -163,17 +163,18 @@ export async function PUT(request: NextRequest) {
 
     // Sanitizar y normalizar datos
     const settingsData = {
-      name: validators.sanitizeString(body.name).slice(0, 100),
-      phone: validators.sanitizePhone(body.phone).slice(0, 20),
-      whatsapp_number: validators.sanitizePhone(body.whatsapp_number).slice(0, 20),
-      address: validators.sanitizeString(body.address).slice(0, 200),
-      delivery_cost: deliveryCost,
-      is_delivery_free: Boolean(body.is_delivery_free),
-      opening_hours: body.opening_hours,
-      is_open: Boolean(body.is_open),
-      social_media: body.social_media || {},
-    };
-
+  name: validators.sanitizeString(body.name).slice(0, 100),
+  phone: validators.sanitizePhone(body.phone).slice(0, 20),
+  whatsapp_number: normalizePhoneForWhatsApp(
+    validators.sanitizePhone(body.whatsapp_number).slice(0, 20)
+  ),
+  address: validators.sanitizeString(body.address).slice(0, 200),
+  delivery_cost: deliveryCost,
+  is_delivery_free: Boolean(body.is_delivery_free),
+  opening_hours: body.opening_hours,
+  is_open: Boolean(body.is_open),
+  social_media: body.social_media || {},
+};
     const { data, error } = await supabaseHelpers.updateRestaurantSettings(settingsData);
 
     if (error) {
