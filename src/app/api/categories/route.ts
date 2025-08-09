@@ -1,6 +1,23 @@
 // src/app/api/categories/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseHelpers } from '../../../lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+// Crear cliente Supabase para verificar auth
+async function getSupabaseServer() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll().map(({ name, value }) => ({ name, value })),
+        setAll: () => {}
+      }
+    }
+  );
+}
 
 export async function GET() {
   try {
@@ -25,19 +42,53 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar autenticación y rol admin
+    const supabase = await getSupabaseServer();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
+    // Verificar rol admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    if (profile?.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Permisos insuficientes' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
 
-    if (!body.name) {
+    // Validación y sanitización
+    if (!body.name || typeof body.name !== 'string') {
       return NextResponse.json(
         { error: 'El nombre es requerido' },
         { status: 400 }
       );
     }
 
+    const sanitizedName = body.name.trim().slice(0, 100);
+    if (sanitizedName.length < 2) {
+      return NextResponse.json(
+        { error: 'El nombre debe tener al menos 2 caracteres' },
+        { status: 400 }
+      );
+    }
+
     const categoryData = {
-      name: body.name.trim(),
-      display_order: body.display_order || 0,
-      is_active: body.is_active !== undefined ? body.is_active : true,
+      name: sanitizedName,
+      display_order: Number(body.display_order) || 0,
+      is_active: body.is_active !== false
     };
 
     const { data, error } = await supabaseHelpers.createCategory(categoryData);

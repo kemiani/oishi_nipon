@@ -63,7 +63,6 @@ interface DatabaseOrder {
 export const supabaseHelpers = {
   // ────────── PRODUCTOS ──────────
 
-  // Trae todos los productos activos
   async getProducts() {
     const { data, error } = await supabase
       .from('products')
@@ -84,13 +83,11 @@ export const supabaseHelpers = {
       stock: item.stock,
       created_at: item.created_at,
       updated_at: item.updated_at,
-      // No se traen variaciones en esta versión simple
     }));
 
     return { data: products, error: null };
   },
 
-  // Trae producto por id
   async getProductById(id: string) {
     const { data, error } = await supabase
       .from('products')
@@ -117,7 +114,6 @@ export const supabaseHelpers = {
     return { data: product, error: null };
   },
 
-  // Crear producto (usando ProductInsert, NO Product)
   async createProduct(productData: ProductInsert) {
     const { data, error } = await supabase
       .from('products')
@@ -152,7 +148,6 @@ export const supabaseHelpers = {
     return { data: product, error: null };
   },
 
-  // Actualizar producto por id (usando ProductInsert)
   async updateProduct(id: string, updates: ProductInsert) {
     const { data, error } = await supabase
       .from('products')
@@ -188,7 +183,6 @@ export const supabaseHelpers = {
     return { data: product, error: null };
   },
 
-  // Eliminar producto
   async deleteProduct(id: string) {
     return await supabase.from('products').delete().eq('id', id);
   },
@@ -216,15 +210,14 @@ export const supabaseHelpers = {
     return { data: categories, error: null };
   },
 
-  async createCategory(categoryData: Omit<Category, 'id'>) {
+  async createCategory(categoryData: { name: string; display_order?: number; is_active?: boolean }) {
+    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('categories')
       .insert([{
         name: categoryData.name,
         display_order: categoryData.display_order || 0,
-        is_active: categoryData.is_active,
-        created_at: categoryData.created_at || new Date().toISOString(),
-        updated_at: categoryData.updated_at || new Date().toISOString(),
+        is_active: categoryData.is_active !== undefined ? categoryData.is_active : true,
       }])
       .select()
       .single();
@@ -273,6 +266,48 @@ export const supabaseHelpers = {
     }));
 
     return { data: orders, error: null };
+  },
+
+  async createOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([{
+        customer_name: orderData.customer_name,
+        customer_phone: orderData.customer_phone,
+        delivery_type: orderData.delivery_type,
+        delivery_address: orderData.delivery_address || null,
+        payment_method: orderData.payment_method,
+        items: orderData.items,
+        subtotal: orderData.subtotal,
+        delivery_cost: orderData.delivery_cost,
+        total: orderData.total,
+        status: orderData.status,
+        notes: orderData.notes || null,
+      }])
+      .select()
+      .single();
+
+    if (error) return { data: null, error };
+
+    const item = data as DatabaseOrder;
+    const order: Order = {
+      id: item.id,
+      customer_name: item.customer_name,
+      customer_phone: item.customer_phone,
+      delivery_type: item.delivery_type,
+      delivery_address: item.delivery_address || undefined,
+      payment_method: item.payment_method,
+      items: item.items,
+      subtotal: item.subtotal,
+      delivery_cost: item.delivery_cost,
+      total: item.total,
+      status: item.status,
+      notes: item.notes || undefined,
+      created_at: item.created_at,
+      updated_at: item.updated_at || undefined,
+    };
+
+    return { data: order, error: null };
   },
 
   async updateOrderStatus(id: string, status: Order['status']) {
@@ -334,7 +369,7 @@ export const supabaseHelpers = {
 
   // ────────── REPORTES ─────────────
 
-  async getOrderStats(startDate?: string, endDate?: string) {
+  async getOrderStats(startDate: string, endDate: string) {
     let query = supabase.from('orders').select('*');
     if (startDate) query = query.gte('created_at', startDate);
     if (endDate) query = query.lte('created_at', endDate);
