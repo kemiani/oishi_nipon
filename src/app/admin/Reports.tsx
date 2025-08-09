@@ -14,6 +14,9 @@ export default function Reports() {
     setStats({ total, count: data.length });
   };
 
+  const fmtMoney = (n: number) =>
+    new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
+
   return (
     <section className="glass-card p-6 max-w-xl">
       <h2 className="section-title">Reporte de ventas</h2>
@@ -33,9 +36,15 @@ export default function Reports() {
         <button onClick={handleGenerate} className="btn-primary h-max self-end">Generar</button>
       </div>
       {stats && (
-        <div className="mt-6 space-y-2">
-          <p>Total de pedidos: <span className="font-bold text-accent-gold">{stats.count}</span></p>
-          <p>Ingresos: <span className="font-bold text-accent-gold">${stats.total}</span></p>
+        <div className="mt-6 grid grid-cols-2 gap-4">
+          <div className="glass-card p-4">
+            <p className="tiny-label">Total de pedidos</p>
+            <p className="text-2xl font-bold">{stats.count}</p>
+          </div>
+          <div className="glass-card p-4">
+            <p className="tiny-label">Ingresos</p>
+            <p className="text-2xl font-bold text-accent-gold">{fmtMoney(stats.total)}</p>
+          </div>
         </div>
       )}
     </section>

@@ -1,7 +1,7 @@
 // src/app/admin/ProductForm.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import type { Product, Category, ProductInsert } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -20,7 +20,6 @@ export default function ProductForm({
   onSaved,
   onCancel,
 }: Props) {
-  /* ----------  STATE  ---------- */
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -34,8 +33,6 @@ export default function ProductForm({
   const [loading, setLoading] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
-  /* ----------  EFFECTS  ---------- */
-  // Pre-cargar datos si estamos editando
   useEffect(() => {
     if (!product) return;
     setForm({
@@ -49,7 +46,6 @@ export default function ProductForm({
     setImagePreview(product.image_url || null);
   }, [product]);
 
-  // Vista previa local de la imagen
   useEffect(() => {
     if (!imageFile) return;
     const url = URL.createObjectURL(imageFile);
@@ -57,7 +53,6 @@ export default function ProductForm({
     return () => URL.revokeObjectURL(url);
   }, [imageFile]);
 
-  /* ----------  HANDLERS  ---------- */
   const handleChange = (
     event: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -70,7 +65,6 @@ export default function ProductForm({
     }));
   };
 
-  // Sube a Storage; si falla, usa base64 como fallback
   async function uploadImage(file: File): Promise<string | null> {
     setLoading(true);
     setUploadError('');
@@ -97,7 +91,6 @@ export default function ProductForm({
         return data.publicUrl;
       }
 
-      // fallback → base64
       console.warn('Storage falló, usando base64:', error);
       setUploadError('Usando almacenamiento alternativo');
 
@@ -155,20 +148,15 @@ export default function ProductForm({
     setUploadError('');
   };
 
-  /* ----------  RENDER  ---------- */
   return (
     <form onSubmit={handleSubmit} className="glass-card p-6 max-w-xl mb-10">
       <h3 className="text-2xl font-bold mb-6 text-white">
         {product ? 'Editar producto' : 'Nuevo producto'}
       </h3>
 
-      {/* ----------  CAMPOS  ---------- */}
       <div className="space-y-4">
-        {/* Nombre */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Nombre *
-          </label>
+          <label className="tiny-label">Nombre *</label>
           <input
             name="name"
             value={form.name}
@@ -179,27 +167,21 @@ export default function ProductForm({
           />
         </div>
 
-        {/* Descripción */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Descripción
-          </label>
+          <label className="tiny-label">Descripción</label>
           <textarea
             name="description"
             value={form.description}
             onChange={handleChange}
             placeholder="Descripción del producto"
-            className="input-premium w-full resize-none"
+            className="textarea-premium w-full resize-none"
             rows={3}
           />
         </div>
 
-        {/* Precio + Stock */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Precio *
-            </label>
+            <label className="tiny-label">Precio *</label>
             <input
               name="price"
               type="number"
@@ -213,9 +195,7 @@ export default function ProductForm({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Stock
-            </label>
+            <label className="tiny-label">Stock</label>
             <input
               name="stock"
               type="number"
@@ -227,16 +207,13 @@ export default function ProductForm({
           </div>
         </div>
 
-        {/* Categoría */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Categoría *
-          </label>
+          <label className="tiny-label">Categoría *</label>
           <select
             name="category"
             value={form.category}
             onChange={handleChange}
-            className="input-premium w-full"
+            className="select-premium w-full"
             required
           >
             <option value="">Selecciona categoría</option>
@@ -248,14 +225,10 @@ export default function ProductForm({
           </select>
         </div>
 
-        {/* Imagen */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Imagen
-          </label>
+          <label className="tiny-label">Imagen</label>
 
           <div className="space-y-3">
-            {/* URL directa */}
             <input
               name="image_url"
               value={form.image_url}
@@ -264,15 +237,12 @@ export default function ProductForm({
               className="input-premium w-full"
             />
 
-            {/* Upload de archivo */}
             <div className="relative">
               <input
                 type="file"
                 accept="image/*"
-                onChange={ev =>
-                  setImageFile(ev.currentTarget.files?.[0] || null)
-                }
-                className="input-premium w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent-red file:text-white hover:file:bg-accent-red-hover"
+                onChange={ev => setImageFile(ev.currentTarget.files?.[0] || null)}
+                className="input-premium w-full"
               />
               {uploadError && (
                 <p className="text-xs text-yellow-400 mt-1">{uploadError}</p>
@@ -281,7 +251,6 @@ export default function ProductForm({
           </div>
         </div>
 
-        {/* Preview */}
         {imagePreview && (
           <div className="p-4 bg-black/50 rounded-lg">
             <p className="text-sm text-gray-400 mb-2">Vista previa:</p>
@@ -297,23 +266,13 @@ export default function ProductForm({
         )}
       </div>
 
-      {/* ----------  ACCIONES  ---------- */}
       <div className="flex gap-3 mt-6">
         <button
           type="submit"
           disabled={loading}
           className="btn-primary flex-1 justify-center"
         >
-          {loading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-              Guardando...
-            </>
-          ) : product ? (
-            'Actualizar'
-          ) : (
-            'Crear producto'
-          )}
+          {loading ? 'Guardando…' : (product ? 'Actualizar' : 'Crear producto')}
         </button>
 
         {product && (

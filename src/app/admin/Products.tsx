@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { supabaseHelpers } from '@/lib/supabase';
 import type { Product, Category } from '../../types';
 import ProductForm from './ProductForm';
 
 export default function Products() {
-  // state
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -16,7 +15,6 @@ export default function Products() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string>('');
 
-  // load data
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -76,7 +74,7 @@ export default function Products() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar producto?')) return;
+    if (!confirm('¿Eliminar producto? Esta acción no se puede deshacer.')) return;
     await supabaseHelpers.deleteProduct(id);
     await refresh();
   };
@@ -85,9 +83,11 @@ export default function Products() {
     setImageErrors(prev => ({ ...prev, [productId]: true }));
   };
 
+  const fmtMoney = (n: number) =>
+    new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
+
   return (
     <div className="space-y-8">
-      {/* Formulario crear/editar */}
       <ProductForm
         categories={categories}
         product={editingProduct}
@@ -95,9 +95,8 @@ export default function Products() {
         onCancel={handleCancel}
       />
 
-      {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Productos</h2>
+        <h2 className="section-title">Productos</h2>
         <button
           onClick={refresh}
           className="btn-secondary btn-sm"
@@ -108,25 +107,25 @@ export default function Products() {
         </button>
       </div>
 
-      {/* Estados */}
       {loading && (
-        <div className="glass-card p-4 text-gray-300">Cargando productos…</div>
+        <div className="space-y-3">
+          <div className="skeleton h-20" />
+          <div className="skeleton h-20" />
+          <div className="skeleton h-20" />
+        </div>
       )}
       {error && !loading && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-400">
-          {error}
-        </div>
+        <div className="alert-error">{error}</div>
       )}
       {!loading && !error && products.length === 0 && (
         <div className="glass-card p-4 text-gray-400">No hay productos.</div>
       )}
 
-      {/* Lista */}
       {!loading && !error && products.length > 0 && (
         <section className="space-y-3">
           {products.map(p => (
             <div key={p.id} className="flex items-center gap-4 glass-card p-4">
-              <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-900 shrink-0">
+              <div className="admin-thumb relative shrink-0">
                 {p.image_url && !imageErrors[p.id] ? (
                   <Image
                     src={p.image_url}
@@ -139,9 +138,7 @@ export default function Products() {
                     unoptimized
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-2xl select-none">
-                    🍣
-                  </div>
+                  <div className="w-full h-full flex items-center justify-center text-2xl select-none">🍣</div>
                 )}
               </div>
 
@@ -149,15 +146,13 @@ export default function Products() {
                 <div className="flex items-center gap-2">
                   <strong className="text-white truncate">{p.name}</strong>
                   {!p.is_available && (
-                    <span className="ml-1 rounded bg-gray-700/60 px-2 py-0.5 text-xs text-gray-300">
-                      no disponible
-                    </span>
+                    <span className="badge">no disponible</span>
                   )}
                 </div>
                 {p.description && (
                   <div className="text-sm text-gray-400 line-clamp-2">{p.description}</div>
                 )}
-                <div className="text-accent-gold font-semibold mt-1">${p.price}</div>
+                <div className="text-accent-gold font-semibold mt-1">{fmtMoney(Number(p.price))}</div>
               </div>
 
               <div className="flex items-center gap-2">
