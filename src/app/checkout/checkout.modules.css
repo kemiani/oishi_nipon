@@ -162,3 +162,10 @@ table tbody tr:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-red);
 }
+
+/* progress bar shine */
+.text-gradient-red {
+  background: linear-gradient(90deg, #ff1744, #ff617d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
